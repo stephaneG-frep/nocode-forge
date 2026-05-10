@@ -1,5 +1,19 @@
-const textColorOptions = ['text-slate-900', 'text-white', 'text-slate-500', 'text-brand-700'];
-const backgroundOptions = ['bg-white', 'bg-slate-900', 'bg-slate-100', 'bg-brand-600', 'bg-brand-50'];
+const textColorOptions = [
+  'text-[color:var(--ncf-text)]',
+  'text-[color:var(--ncf-muted)]',
+  'text-white',
+  'text-slate-900',
+  'text-slate-500',
+];
+const backgroundOptions = [
+  'bg-[color:var(--ncf-surface)]',
+  'bg-[color:var(--ncf-surface-soft)]',
+  'bg-[color:var(--ncf-accent)]',
+  'bg-[color:var(--ncf-accent-strong)]',
+  'bg-white',
+  'bg-slate-100',
+  'bg-slate-900',
+];
 const fontSizeOptions = ['text-sm', 'text-base', 'text-lg', 'text-xl', 'text-2xl'];
 const paddingOptions = ['p-0', 'p-2', 'p-4', 'p-6', 'px-4 py-2', 'px-6 py-3'];
 const radiusOptions = ['rounded-none', 'rounded-lg', 'rounded-xl', 'rounded-2xl', 'rounded-3xl'];
@@ -48,6 +62,30 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
             onChange={(e) => onUpdate('content', e.target.value)}
             rows={3}
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800"
+          />
+        </label>
+
+        <label className="block space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Width (px)</span>
+          <input
+            type="number"
+            min="80"
+            value={props.width ?? ''}
+            onChange={(e) => onUpdate('props.width', e.target.value ? Number(e.target.value) : null)}
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800"
+            placeholder="auto"
+          />
+        </label>
+
+        <label className="block space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Height (px)</span>
+          <input
+            type="number"
+            min="40"
+            value={props.height ?? ''}
+            onChange={(e) => onUpdate('props.height', e.target.value ? Number(e.target.value) : null)}
+            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800"
+            placeholder="auto"
           />
         </label>
 

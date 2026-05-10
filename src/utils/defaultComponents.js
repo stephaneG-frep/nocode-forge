@@ -1,9 +1,11 @@
 const baseProps = {
-  textColor: 'text-slate-900',
-  backgroundColor: 'bg-white',
+  textColor: 'text-[color:var(--ncf-text)]',
+  backgroundColor: 'bg-[color:var(--ncf-surface)]',
   padding: 'px-4 py-2',
   radius: 'rounded-xl',
   fontSize: 'text-base',
+  width: null,
+  height: null,
 };
 
 export const componentLibrary = [
@@ -39,7 +41,7 @@ export const createDefaultElement = (type) => {
         props: {
           ...baseProps,
           textColor: 'text-white',
-          backgroundColor: 'bg-brand-600',
+          backgroundColor: 'bg-[color:var(--ncf-accent)]',
         },
       };
     case 'image':
@@ -58,7 +60,7 @@ export const createDefaultElement = (type) => {
         content: 'Card title\nCard description',
         props: {
           ...baseProps,
-          backgroundColor: 'bg-white',
+          backgroundColor: 'bg-[color:var(--ncf-surface)]',
           padding: 'p-6',
           radius: 'rounded-2xl',
         },
@@ -69,7 +71,7 @@ export const createDefaultElement = (type) => {
         content: 'Type here...',
         props: {
           ...baseProps,
-          backgroundColor: 'bg-white',
+          backgroundColor: 'bg-[color:var(--ncf-surface)]',
           padding: 'px-4 py-3',
         },
       };
@@ -79,7 +81,7 @@ export const createDefaultElement = (type) => {
         content: 'Section title',
         props: {
           ...baseProps,
-          backgroundColor: 'bg-slate-50',
+          backgroundColor: 'bg-[color:var(--ncf-surface-soft)]',
           padding: 'p-8',
           radius: 'rounded-3xl',
         },
@@ -91,7 +93,7 @@ export const createDefaultElement = (type) => {
         props: {
           ...baseProps,
           textColor: 'text-white',
-          backgroundColor: 'bg-slate-900',
+          backgroundColor: 'bg-[color:var(--ncf-accent-strong)]',
           padding: 'px-6 py-4',
           radius: 'rounded-2xl',
         },
@@ -102,8 +104,8 @@ export const createDefaultElement = (type) => {
         content: '© 2026 NoCode Forge. All rights reserved.',
         props: {
           ...baseProps,
-          textColor: 'text-slate-200',
-          backgroundColor: 'bg-slate-800',
+          textColor: 'text-white',
+          backgroundColor: 'bg-[color:var(--ncf-accent-strong)]',
           padding: 'px-6 py-5',
           radius: 'rounded-2xl',
           fontSize: 'text-sm',

@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+
 const classesFromProps = (element) => {
   const p = element.props || {};
   return [
@@ -12,7 +14,14 @@ const classesFromProps = (element) => {
     .join(' ');
 };
 
-const editableTypes = new Set(['text', 'button', 'section', 'navbar', 'footer']);
+const parseSize = (value) => {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const numeric = Number.parseInt(value, 10);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+  return null;
+};
 
 export default function RenderElement({
   element,
@@ -21,8 +30,17 @@ export default function RenderElement({
   onInlineEdit,
   previewMode,
 }) {
+  const rootRef = useRef(null);
   const selectedRing = selected && !previewMode ? 'ring-2 ring-brand-500 ring-offset-2' : '';
   const base = `${classesFromProps(element)} ${selectedRing}`.trim();
+
+  const width = parseSize(element.props?.width);
+  const height = parseSize(element.props?.height);
+
+  const boxStyle = {
+    width: width ? `${width}px` : undefined,
+    height: height ? `${height}px` : undefined,
+  };
 
   const onContainerClick = (e) => {
     if (!previewMode) {
@@ -36,104 +54,140 @@ export default function RenderElement({
     onInlineEdit(element.id, 'content', e.currentTarget.textContent || '');
   };
 
+  const startResize = (event) => {
+    if (previewMode || !selected || !rootRef.current || !onInlineEdit) return;
+    event.stopPropagation();
+    event.preventDefault();
+
+    const box = rootRef.current.getBoundingClientRect();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startWidth = box.width;
+    const startHeight = box.height;
+
+    const onMouseMove = (moveEvent) => {
+      const nextWidth = Math.max(80, Math.round(startWidth + (moveEvent.clientX - startX)));
+      const nextHeight = Math.max(40, Math.round(startHeight + (moveEvent.clientY - startY)));
+      onInlineEdit(element.id, 'props.width', nextWidth);
+      onInlineEdit(element.id, 'props.height', nextHeight);
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
   const sharedProps = {
     className: base,
     onClick: onContainerClick,
   };
 
-  switch (element.type) {
-    case 'text':
-      return (
-        <p
-          {...sharedProps}
-          contentEditable={!previewMode && selected}
-          suppressContentEditableWarning
-          onInput={onInlineInput}
-        >
-          {element.content}
-        </p>
-      );
-    case 'button':
-      return (
-        <button
-          {...sharedProps}
-          contentEditable={!previewMode && selected}
-          suppressContentEditableWarning
-          onInput={onInlineInput}
-        >
-          {element.content}
-        </button>
-      );
-    case 'image':
-      return <img {...sharedProps} src={element.content} alt="builder visual" />;
-    case 'card': {
-      const [title, description] = (element.content || '').split('\n');
-      return (
-        <div {...sharedProps}>
-          <h3 className="text-lg font-semibold">{title || 'Card title'}</h3>
-          <p className="mt-2 text-slate-600">{description || 'Card description'}</p>
-          {!previewMode && selected ? (
-            <p className="mt-3 text-xs text-slate-400">Edit title/description from Properties panel (line break for split).</p>
-          ) : null}
-        </div>
-      );
-    }
-    case 'input':
-      return (
-        <input
-          {...sharedProps}
-          placeholder={element.content || 'Type here'}
-          className={`${base} border border-slate-300`.trim()}
-          onChange={(e) => onInlineEdit?.(element.id, 'content', e.target.value)}
-          readOnly={previewMode || !selected}
-          value={selected && !previewMode ? element.content : ''}
-        />
-      );
-    case 'section':
-      return (
-        <section {...sharedProps}>
-          <h2
-            className="text-2xl font-bold"
+  const renderNode = () => {
+    switch (element.type) {
+      case 'text':
+        return (
+          <p
+            {...sharedProps}
             contentEditable={!previewMode && selected}
             suppressContentEditableWarning
             onInput={onInlineInput}
           >
             {element.content}
-          </h2>
-        </section>
-      );
-    case 'navbar':
-      return (
-        <nav
-          {...sharedProps}
-          contentEditable={!previewMode && selected}
-          suppressContentEditableWarning
-          onInput={onInlineInput}
-        >
-          {element.content}
-        </nav>
-      );
-    case 'footer':
-      return (
-        <footer
-          {...sharedProps}
-          contentEditable={!previewMode && selected}
-          suppressContentEditableWarning
-          onInput={onInlineInput}
-        >
-          {element.content}
-        </footer>
-      );
-    default:
-      return (
-        <div
-          {...sharedProps}
-          contentEditable={!previewMode && selected && editableTypes.has(element.type)}
-          suppressContentEditableWarning
-          onInput={onInlineInput}
-        >
-          {element.content}
-        </div>
-      );
-  }
+          </p>
+        );
+      case 'button':
+        return (
+          <button
+            {...sharedProps}
+            contentEditable={!previewMode && selected}
+            suppressContentEditableWarning
+            onInput={onInlineInput}
+          >
+            {element.content}
+          </button>
+        );
+      case 'image':
+        return <img {...sharedProps} src={element.content} alt="builder visual" />;
+      case 'card': {
+        const [title, description] = (element.content || '').split('\n');
+        return (
+          <div {...sharedProps}>
+            <h3 className="text-lg font-semibold">{title || 'Card title'}</h3>
+            <p className="mt-2 text-slate-600">{description || 'Card description'}</p>
+            {!previewMode && selected ? (
+              <p className="mt-3 text-xs text-slate-400">
+                Edit title/description from Properties panel (line break for split).
+              </p>
+            ) : null}
+          </div>
+        );
+      }
+      case 'input':
+        return (
+          <input
+            {...sharedProps}
+            placeholder={element.content || 'Type here'}
+            className={`${base} border border-slate-300`.trim()}
+            onChange={(e) => onInlineEdit?.(element.id, 'content', e.target.value)}
+            readOnly={previewMode || !selected}
+            value={selected && !previewMode ? element.content : ''}
+          />
+        );
+      case 'section':
+        return (
+          <section {...sharedProps}>
+            <h2
+              className="text-2xl font-bold"
+              contentEditable={!previewMode && selected}
+              suppressContentEditableWarning
+              onInput={onInlineInput}
+            >
+              {element.content}
+            </h2>
+          </section>
+        );
+      case 'navbar':
+        return (
+          <nav
+            {...sharedProps}
+            contentEditable={!previewMode && selected}
+            suppressContentEditableWarning
+            onInput={onInlineInput}
+          >
+            {element.content}
+          </nav>
+        );
+      case 'footer':
+        return (
+          <footer
+            {...sharedProps}
+            contentEditable={!previewMode && selected}
+            suppressContentEditableWarning
+            onInput={onInlineInput}
+          >
+            {element.content}
+          </footer>
+        );
+      default:
+        return <div {...sharedProps}>{element.content}</div>;
+    }
+  };
+
+  return (
+    <div ref={rootRef} style={boxStyle} className="group relative inline-block max-w-full align-top">
+      {renderNode()}
+      {selected && !previewMode ? (
+        <button
+          type="button"
+          aria-label="Resize"
+          onMouseDown={startResize}
+          className="absolute -bottom-2 -right-2 h-4 w-4 cursor-se-resize rounded-sm border border-brand-700 bg-brand-500"
+        />
+      ) : null}
+    </div>
+  );
 }
