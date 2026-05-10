@@ -2,6 +2,8 @@ export default function Header({
   onPreview,
   onExport,
   onClear,
+  onOpenThemeEditor,
+  onOpenHelp,
   previewMode,
   themeId,
   themes,
@@ -25,6 +27,13 @@ export default function Header({
           </select>
 
           <button
+            onClick={onOpenThemeEditor}
+            className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+          >
+            Theme editor
+          </button>
+
+          <button
             onClick={onPreview}
             className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
           >
@@ -41,6 +50,12 @@ export default function Header({
             className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100"
           >
             Clear canvas
+          </button>
+          <button
+            onClick={onOpenHelp}
+            className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+          >
+            Help
           </button>
         </div>
       </div>

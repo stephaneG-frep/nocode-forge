@@ -7,12 +7,15 @@ import PropertiesPanel from './components/PropertiesPanel';
 import PreviewModal from './components/PreviewModal';
 import CodeExporter from './components/CodeExporter';
 import ToastContainer from './components/ToastContainer';
+import ThemeEditorModal from './components/ThemeEditorModal';
+import HelpCenter from './components/HelpCenter';
 import { createDefaultElement } from './utils/defaultComponents';
 import { generateProjectFiles } from './utils/generateCode';
 import { defaultThemeId, getThemeById, themes } from './utils/themes';
 
 const STORAGE_KEY = 'nocode-forge-canvas';
 const THEME_STORAGE_KEY = 'nocode-forge-theme';
+const CUSTOM_THEMES_STORAGE_KEY = 'nocode-forge-custom-themes';
 
 const readStoredElements = () => {
   try {
@@ -34,6 +37,17 @@ const readStoredThemeId = () => {
   }
 };
 
+const readCustomThemes = () => {
+  try {
+    const raw = localStorage.getItem(CUSTOM_THEMES_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 const moveItem = (arr, fromIndex, toIndex) => {
   const next = [...arr];
   const [item] = next.splice(fromIndex, 1);
@@ -46,17 +60,33 @@ const duplicateWithNewId = (el) => ({
   id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
 });
 
+const slugify = (text) =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 export default function App() {
   const [elements, setElements] = useState(readStoredElements);
+  const [customThemes, setCustomThemes] = useState(readCustomThemes);
   const [themeId, setThemeId] = useState(readStoredThemeId);
   const [selectedId, setSelectedId] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [themeEditorOpen, setThemeEditorOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
   const [toasts, setToasts] = useState([]);
+  const [draftThemeName, setDraftThemeName] = useState('My Custom Theme');
+  const [draftThemeVars, setDraftThemeVars] = useState(getThemeById(defaultThemeId).vars);
 
-  const activeTheme = useMemo(() => getThemeById(themeId), [themeId]);
+  const allThemes = useMemo(() => [...themes, ...customThemes], [customThemes]);
+  const activeTheme = useMemo(
+    () => allThemes.find((theme) => theme.id === themeId) || allThemes[0],
+    [allThemes, themeId]
+  );
 
   const pushToast = (message, type = 'info') => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -73,6 +103,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(THEME_STORAGE_KEY, themeId);
   }, [themeId]);
+
+  useEffect(() => {
+    localStorage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(customThemes));
+  }, [customThemes]);
 
   const selectedElement = useMemo(
     () => elements.find((el) => el.id === selectedId) || null,
@@ -211,6 +245,27 @@ export default function App() {
     pushToast('Redo', 'info');
   };
 
+  const openThemeEditor = () => {
+    setDraftThemeName(`Custom ${allThemes.length - themes.length + 1}`);
+    setDraftThemeVars(activeTheme.vars);
+    setThemeEditorOpen(true);
+  };
+
+  const saveCustomTheme = () => {
+    const name = draftThemeName.trim();
+    if (!name) {
+      pushToast('Theme name is required', 'error');
+      return;
+    }
+
+    const id = `custom-${slugify(name)}-${Date.now().toString(36).slice(-4)}`;
+    const newTheme = { id, name, vars: { ...draftThemeVars } };
+    setCustomThemes((prev) => [...prev, newTheme]);
+    setThemeId(id);
+    setThemeEditorOpen(false);
+    pushToast('Custom theme saved', 'success');
+  };
+
   useEffect(() => {
     const isTypingContext = (target) => {
       if (!target) return false;
@@ -228,6 +283,12 @@ export default function App() {
 
       const key = event.key.toLowerCase();
       const ctrlOrCmd = event.ctrlKey || event.metaKey;
+
+      if (key === '?') {
+        event.preventDefault();
+        setHelpOpen(true);
+        return;
+      }
 
       if (key === 'delete' || key === 'backspace') {
         event.preventDefault();
@@ -295,17 +356,23 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen text-slate-900" style={{ backgroundColor: 'var(--ncf-app-bg)', ...activeTheme.vars }}>
+    <div
+      className="min-h-screen text-slate-900"
+      style={{ backgroundColor: 'var(--ncf-app-bg)', ...activeTheme.vars }}
+    >
       <Header
         onPreview={() => setPreviewOpen(true)}
         onExport={() => setExportOpen(true)}
         onClear={clearCanvas}
+        onOpenThemeEditor={openThemeEditor}
+        onOpenHelp={() => setHelpOpen(true)}
         previewMode={previewOpen}
         themeId={themeId}
-        themes={themes}
+        themes={allThemes}
         onChangeTheme={(id) => {
           setThemeId(id);
-          pushToast(`Theme: ${getThemeById(id).name}`, 'info');
+          const theme = allThemes.find((item) => item.id === id);
+          pushToast(`Theme: ${theme?.name || id}`, 'info');
         }}
       />
 
@@ -332,6 +399,13 @@ export default function App() {
         <PropertiesPanel selectedElement={selectedElement} onUpdate={updateElement} />
       </main>
 
+      <button
+        onClick={() => setHelpOpen(true)}
+        className="fixed bottom-4 right-4 z-40 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl hover:bg-slate-700"
+      >
+        ? Help
+      </button>
+
       <PreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} elements={elements} />
       <CodeExporter
         open={exportOpen}
@@ -340,6 +414,16 @@ export default function App() {
         onCopy={copyFile}
         onDownloadZip={downloadZip}
       />
+      <ThemeEditorModal
+        open={themeEditorOpen}
+        draftName={draftThemeName}
+        draftVars={draftThemeVars}
+        onNameChange={setDraftThemeName}
+        onVarChange={(key, value) => setDraftThemeVars((prev) => ({ ...prev, [key]: value }))}
+        onClose={() => setThemeEditorOpen(false)}
+        onSave={saveCustomTheme}
+      />
+      <HelpCenter open={helpOpen} onClose={() => setHelpOpen(false)} />
       <ToastContainer toasts={toasts} />
     </div>
   );
