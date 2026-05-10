@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import RenderElement from './RenderElement';
 
+const frameMap = {
+  desktop: { width: '100%', minHeight: 500, shell: '' },
+  iphone: { width: 390, minHeight: 740, shell: 'rounded-[2.2rem] border-8 border-slate-900 bg-white' },
+  android: { width: 412, minHeight: 820, shell: 'rounded-[1.8rem] border-8 border-slate-800 bg-white' },
+  tablet: { width: 768, minHeight: 700, shell: 'rounded-[1.2rem] border-8 border-slate-700 bg-white' },
+};
+
 export default function BuilderCanvas({
   elements,
   selectedId,
@@ -16,9 +23,12 @@ export default function BuilderCanvas({
   onMoveSelectedDown,
   onInlineEdit,
   previewMode,
+  viewport,
+  onViewportChange,
 }) {
   const [draggedId, setDraggedId] = useState(null);
   const [dropHint, setDropHint] = useState(null);
+  const frame = frameMap[viewport] || frameMap.desktop;
 
   const clearDragState = () => {
     setDraggedId(null);
@@ -30,6 +40,16 @@ export default function BuilderCanvas({
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Canvas</h2>
         <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={viewport}
+            onChange={(e) => onViewportChange?.(e.target.value)}
+            className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
+          >
+            <option value="desktop">Desktop</option>
+            <option value="iphone">iPhone</option>
+            <option value="android">Android</option>
+            <option value="tablet">Tablet</option>
+          </select>
           <button
             onClick={onUndo}
             disabled={!canUndo || previewMode}
@@ -75,67 +95,70 @@ export default function BuilderCanvas({
         </div>
       </div>
 
-      <div
-        onClick={() => !previewMode && onSelect(null)}
-        onDragOver={(e) => {
-          if (!previewMode) e.preventDefault();
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          clearDragState();
-        }}
-        className="min-h-[500px] rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 md:p-6"
-      >
-        {elements.length === 0 ? (
-          <div className="grid min-h-[430px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white/60 text-center text-slate-500">
-            Add components to start building
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {elements.map((element) => {
-              const showBefore = dropHint?.targetId === element.id && dropHint?.placement === 'before';
-              const showAfter = dropHint?.targetId === element.id && dropHint?.placement === 'after';
+      <div className="grid place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 md:p-6">
+        <div
+          onClick={() => !previewMode && onSelect(null)}
+          onDragOver={(e) => {
+            if (!previewMode) e.preventDefault();
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            clearDragState();
+          }}
+          className={`w-full p-4 md:p-6 ${frame.shell}`}
+          style={{ width: frame.width, minHeight: frame.minHeight }}
+        >
+          {elements.length === 0 ? (
+            <div className="grid min-h-[430px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white/60 text-center text-slate-500">
+              Add components to start building
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {elements.map((element) => {
+                const showBefore = dropHint?.targetId === element.id && dropHint?.placement === 'before';
+                const showAfter = dropHint?.targetId === element.id && dropHint?.placement === 'after';
 
-              return (
-                <div key={element.id} className="relative">
-                  {showBefore ? <div className="mb-2 h-1 rounded-full bg-brand-500" /> : null}
+                return (
+                  <div key={element.id} className="relative">
+                    {showBefore ? <div className="mb-2 h-1 rounded-full bg-brand-500" /> : null}
 
-                  <div
-                    draggable={!previewMode}
-                    onDragStart={() => setDraggedId(element.id)}
-                    onDragOver={(e) => {
-                      if (previewMode) return;
-                      e.preventDefault();
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const midpoint = rect.top + rect.height / 2;
-                      const placement = e.clientY < midpoint ? 'before' : 'after';
-                      setDropHint({ targetId: element.id, placement });
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      if (!previewMode && draggedId && dropHint) {
-                        onReorder(draggedId, dropHint.targetId, dropHint.placement);
-                      }
-                      clearDragState();
-                    }}
-                    onDragEnd={clearDragState}
-                    className={draggedId === element.id ? 'opacity-60' : ''}
-                  >
-                    <RenderElement
-                      element={element}
-                      selected={selectedId === element.id}
-                      onSelect={onSelect}
-                      onInlineEdit={onInlineEdit}
-                      previewMode={previewMode}
-                    />
+                    <div
+                      draggable={!previewMode}
+                      onDragStart={() => setDraggedId(element.id)}
+                      onDragOver={(e) => {
+                        if (previewMode) return;
+                        e.preventDefault();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const midpoint = rect.top + rect.height / 2;
+                        const placement = e.clientY < midpoint ? 'before' : 'after';
+                        setDropHint({ targetId: element.id, placement });
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (!previewMode && draggedId && dropHint) {
+                          onReorder(draggedId, dropHint.targetId, dropHint.placement);
+                        }
+                        clearDragState();
+                      }}
+                      onDragEnd={clearDragState}
+                      className={draggedId === element.id ? 'opacity-60' : ''}
+                    >
+                      <RenderElement
+                        element={element}
+                        selected={selectedId === element.id}
+                        onSelect={onSelect}
+                        onInlineEdit={onInlineEdit}
+                        previewMode={previewMode}
+                      />
+                    </div>
+
+                    {showAfter ? <div className="mt-2 h-1 rounded-full bg-brand-500" /> : null}
                   </div>
-
-                  {showAfter ? <div className="mt-2 h-1 rounded-full bg-brand-500" /> : null}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

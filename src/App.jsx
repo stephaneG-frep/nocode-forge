@@ -16,6 +16,7 @@ import { defaultThemeId, getThemeById, themes } from './utils/themes';
 const STORAGE_KEY = 'nocode-forge-canvas';
 const THEME_STORAGE_KEY = 'nocode-forge-theme';
 const CUSTOM_THEMES_STORAGE_KEY = 'nocode-forge-custom-themes';
+const VIEWPORT_STORAGE_KEY = 'nocode-forge-viewport';
 
 const readStoredElements = () => {
   try {
@@ -48,6 +49,14 @@ const readCustomThemes = () => {
   }
 };
 
+const readStoredViewport = () => {
+  try {
+    return localStorage.getItem(VIEWPORT_STORAGE_KEY) || 'desktop';
+  } catch {
+    return 'desktop';
+  }
+};
+
 const moveItem = (arr, fromIndex, toIndex) => {
   const next = [...arr];
   const [item] = next.splice(fromIndex, 1);
@@ -71,6 +80,7 @@ export default function App() {
   const [elements, setElements] = useState(readStoredElements);
   const [customThemes, setCustomThemes] = useState(readCustomThemes);
   const [themeId, setThemeId] = useState(readStoredThemeId);
+  const [viewport, setViewport] = useState(readStoredViewport);
   const [selectedId, setSelectedId] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -107,6 +117,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(customThemes));
   }, [customThemes]);
+
+  useEffect(() => {
+    localStorage.setItem(VIEWPORT_STORAGE_KEY, viewport);
+  }, [viewport]);
 
   const selectedElement = useMemo(
     () => elements.find((el) => el.id === selectedId) || null,
@@ -320,36 +334,41 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [selectedId, history, future, elements]);
 
-  const projectFiles = useMemo(
+  const projectFilesByTarget = useMemo(
     () => generateProjectFiles(elements, activeTheme),
     [elements, activeTheme]
   );
 
-  const copyFile = async (fileName) => {
-    const content = projectFiles[fileName];
+  const copyFile = async (target, fileName) => {
+    const content = projectFilesByTarget?.[target]?.[fileName];
     if (!content) return;
 
     try {
       await navigator.clipboard.writeText(content);
-      pushToast(`${fileName} copied`, 'success');
+      pushToast(`${fileName} copied (${target})`, 'success');
     } catch {
       pushToast('Copy failed', 'error');
     }
   };
 
-  const downloadZip = async () => {
+  const downloadZip = async (target) => {
     try {
       const zip = new JSZip();
-      Object.entries(projectFiles).forEach(([path, content]) => zip.file(path, content));
+      Object.entries(projectFilesByTarget?.[target] || {}).forEach(([path, content]) =>
+        zip.file(path, content)
+      );
       const blob = await zip.generateAsync({ type: 'blob' });
 
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = 'nocode-forge-export.zip';
+      anchor.download =
+        target === 'mobile'
+          ? 'nocode-forge-mobile-expo-export.zip'
+          : 'nocode-forge-web-export.zip';
       anchor.click();
       URL.revokeObjectURL(url);
-      pushToast('ZIP downloaded', 'success');
+      pushToast(`ZIP downloaded (${target})`, 'success');
     } catch {
       pushToast('ZIP export failed', 'error');
     }
@@ -381,6 +400,8 @@ export default function App() {
 
         <BuilderCanvas
           elements={elements}
+          viewport={viewport}
+          onViewportChange={setViewport}
           selectedId={selectedId}
           canUndo={history.length > 0}
           canRedo={future.length > 0}
@@ -409,7 +430,7 @@ export default function App() {
       <PreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} elements={elements} />
       <CodeExporter
         open={exportOpen}
-        files={projectFiles}
+        filesByTarget={projectFilesByTarget}
         onClose={() => setExportOpen(false)}
         onCopy={copyFile}
         onDownloadZip={downloadZip}
