@@ -6,6 +6,10 @@ const baseProps = {
   fontSize: 'text-base',
   width: null,
   height: null,
+  x: null,
+  y: null,
+  locked: false,
+  groupId: null,
 };
 
 export const componentLibrary = [

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import JSZip from 'jszip';
 import Header from './components/Header';
 import ComponentLibrary from './components/ComponentLibrary';
@@ -17,43 +17,18 @@ const STORAGE_KEY = 'nocode-forge-canvas';
 const THEME_STORAGE_KEY = 'nocode-forge-theme';
 const CUSTOM_THEMES_STORAGE_KEY = 'nocode-forge-custom-themes';
 const VIEWPORT_STORAGE_KEY = 'nocode-forge-viewport';
+const CANVAS_LAYOUT_STORAGE_KEY = 'nocode-forge-canvas-layout';
+const HISTORY_LIMIT = 80;
+const COALESCE_WINDOW_MS = 450;
 
-const readStoredElements = () => {
+const readJson = (key, fallback) => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return parsed ?? fallback;
   } catch {
-    return [];
-  }
-};
-
-const readStoredThemeId = () => {
-  try {
-    const id = localStorage.getItem(THEME_STORAGE_KEY);
-    return id || defaultThemeId;
-  } catch {
-    return defaultThemeId;
-  }
-};
-
-const readCustomThemes = () => {
-  try {
-    const raw = localStorage.getItem(CUSTOM_THEMES_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const readStoredViewport = () => {
-  try {
-    return localStorage.getItem(VIEWPORT_STORAGE_KEY) || 'desktop';
-  } catch {
-    return 'desktop';
+    return fallback;
   }
 };
 
@@ -69,19 +44,15 @@ const duplicateWithNewId = (el) => ({
   id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
 });
 
-const slugify = (text) =>
-  text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+const slugify = (text) => text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 export default function App() {
-  const [elements, setElements] = useState(readStoredElements);
-  const [customThemes, setCustomThemes] = useState(readCustomThemes);
-  const [themeId, setThemeId] = useState(readStoredThemeId);
-  const [viewport, setViewport] = useState(readStoredViewport);
-  const [selectedId, setSelectedId] = useState(null);
+  const [elements, setElements] = useState(() => readJson(STORAGE_KEY, []));
+  const [customThemes, setCustomThemes] = useState(() => readJson(CUSTOM_THEMES_STORAGE_KEY, []));
+  const [themeId, setThemeId] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || defaultThemeId);
+  const [viewport, setViewport] = useState(() => localStorage.getItem(VIEWPORT_STORAGE_KEY) || 'desktop');
+  const [canvasLayout, setCanvasLayout] = useState(() => localStorage.getItem(CANVAS_LAYOUT_STORAGE_KEY) || 'column');
+  const [selectedIds, setSelectedIds] = useState([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [themeEditorOpen, setThemeEditorOpen] = useState(false);
@@ -91,47 +62,45 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [draftThemeName, setDraftThemeName] = useState('My Custom Theme');
   const [draftThemeVars, setDraftThemeVars] = useState(getThemeById(defaultThemeId).vars);
+  const [editingThemeId, setEditingThemeId] = useState(null);
+
+  const lastChangeMetaRef = useRef({ key: null, at: 0 });
 
   const allThemes = useMemo(() => [...themes, ...customThemes], [customThemes]);
-  const activeTheme = useMemo(
-    () => allThemes.find((theme) => theme.id === themeId) || allThemes[0],
-    [allThemes, themeId]
-  );
+  const activeTheme = useMemo(() => allThemes.find((t) => t.id === themeId) || allThemes[0], [allThemes, themeId]);
+  const selectedElement = useMemo(() => elements.find((el) => el.id === selectedIds[0]) || null, [elements, selectedIds]);
 
   const pushToast = (message, type = 'info') => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 2200);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 2000);
   };
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(elements));
-  }, [elements]);
+  useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(elements)), [elements]);
+  useEffect(() => localStorage.setItem(THEME_STORAGE_KEY, themeId), [themeId]);
+  useEffect(() => localStorage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(customThemes)), [customThemes]);
+  useEffect(() => localStorage.setItem(VIEWPORT_STORAGE_KEY, viewport), [viewport]);
+  useEffect(() => localStorage.setItem(CANVAS_LAYOUT_STORAGE_KEY, canvasLayout), [canvasLayout]);
 
-  useEffect(() => {
-    localStorage.setItem(THEME_STORAGE_KEY, themeId);
-  }, [themeId]);
+  const applyChange = (updater, options = {}) => {
+    const { coalesceKey = null } = options;
+    const now = Date.now();
 
-  useEffect(() => {
-    localStorage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(customThemes));
-  }, [customThemes]);
-
-  useEffect(() => {
-    localStorage.setItem(VIEWPORT_STORAGE_KEY, viewport);
-  }, [viewport]);
-
-  const selectedElement = useMemo(
-    () => elements.find((el) => el.id === selectedId) || null,
-    [elements, selectedId]
-  );
-
-  const applyChange = (updater) => {
     setElements((prev) => {
       const next = updater(prev);
       if (next === prev) return prev;
-      setHistory((h) => [...h, prev]);
+
+      setHistory((h) => {
+        const lastMeta = lastChangeMetaRef.current;
+        if (coalesceKey && lastMeta.key === coalesceKey && now - lastMeta.at < COALESCE_WINDOW_MS && h.length > 0) {
+          const replaced = [...h];
+          replaced[replaced.length - 1] = prev;
+          return replaced.slice(-HISTORY_LIMIT);
+        }
+        return [...h, prev].slice(-HISTORY_LIMIT);
+      });
+
+      lastChangeMetaRef.current = { key: coalesceKey, at: now };
       setFuture([]);
       return next;
     });
@@ -140,110 +109,188 @@ export default function App() {
   const addElement = (type) => {
     const newElement = createDefaultElement(type);
     applyChange((prev) => [...prev, newElement]);
-    setSelectedId(newElement.id);
+    setSelectedIds([newElement.id]);
     pushToast(`${type} added`, 'success');
   };
 
-  const updateElementById = (id, path, value) => {
-    if (!id) return;
-
-    applyChange((prev) =>
-      prev.map((el) => {
-        if (el.id !== id) return el;
-
-        if (path === 'content' || path === 'className') {
-          return { ...el, [path]: value };
-        }
-
-        if (path.startsWith('props.')) {
-          const key = path.split('.')[1];
-          return { ...el, props: { ...el.props, [key]: value } };
-        }
-
-        return el;
-      })
-    );
+  const onSelectElement = (id, additive = false) => {
+    setSelectedIds((prev) => {
+      if (!id) return [];
+      if (!additive) return [id];
+      return prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id];
+    });
   };
 
-  const updateElement = (path, value) => {
-    if (!selectedId) return;
-    updateElementById(selectedId, path, value);
+  const updateElementById = (id, path, value, options = {}) => {
+    if (!id) return;
+    applyChange((prev) => prev.map((el) => {
+      if (el.id !== id) return el;
+      if (el.props?.locked && path !== 'props.locked' && path !== 'props.groupId') return el;
+      if (path === 'content' || path === 'className') return { ...el, [path]: value };
+      if (path.startsWith('props.')) {
+        const key = path.split('.')[1];
+        return { ...el, props: { ...el.props, [key]: value } };
+      }
+      return el;
+    }), options);
+  };
+
+  const updateSelected = (path, value) => {
+    if (selectedIds.length === 0) return;
+    selectedIds.forEach((id) => updateElementById(id, path, value, { coalesceKey: `${path}:${id}` }));
   };
 
   const deleteSelected = (askConfirm = true) => {
-    if (!selectedId) return;
-    if (askConfirm && !window.confirm('Delete selected component?')) return;
-    applyChange((prev) => prev.filter((el) => el.id !== selectedId));
-    setSelectedId(null);
-    pushToast('Component deleted', 'success');
+    if (selectedIds.length === 0) return;
+    if (askConfirm && !window.confirm(`Delete ${selectedIds.length} selected component(s)?`)) return;
+    applyChange((prev) => prev.filter((el) => !selectedIds.includes(el.id)));
+    setSelectedIds([]);
+    pushToast('Selection deleted', 'success');
   };
 
   const duplicateSelected = () => {
-    if (!selectedId) return;
-
-    let createdId = null;
+    if (selectedIds.length === 0) return;
+    let newIds = [];
     applyChange((prev) => {
-      const index = prev.findIndex((el) => el.id === selectedId);
-      if (index < 0) return prev;
-      const clone = duplicateWithNewId(prev[index]);
-      createdId = clone.id;
       const next = [...prev];
-      next.splice(index + 1, 0, clone);
+      selectedIds.forEach((id) => {
+        const index = next.findIndex((el) => el.id === id);
+        if (index >= 0) {
+          const clone = duplicateWithNewId(next[index]);
+          newIds.push(clone.id);
+          next.splice(index + 1, 0, clone);
+        }
+      });
       return next;
     });
-    if (createdId) {
-      setSelectedId(createdId);
-      pushToast('Component duplicated', 'success');
-    }
+    setSelectedIds(newIds);
+    pushToast('Selection duplicated', 'success');
   };
 
   const clearCanvas = () => {
     if (elements.length === 0) return;
     if (!window.confirm('Clear the whole canvas?')) return;
     applyChange(() => []);
-    setSelectedId(null);
+    setSelectedIds([]);
     pushToast('Canvas cleared', 'success');
   };
 
-  const reorderElements = (fromId, toId, placement = 'before') => {
-    if (!fromId || !toId || fromId === toId) return;
-
+  const reorderElements = (fromId, toId, placement = 'before', dragSelectionIds = []) => {
+    if (!fromId) return;
     applyChange((prev) => {
-      const fromIndex = prev.findIndex((el) => el.id === fromId);
-      const rawToIndex = prev.findIndex((el) => el.id === toId);
-      if (fromIndex < 0 || rawToIndex < 0) return prev;
+      const draggedSelectionSet =
+        dragSelectionIds.includes(fromId) && dragSelectionIds.length > 1
+          ? new Set(dragSelectionIds)
+          : new Set([fromId]);
 
-      let toIndex = rawToIndex;
-      if (placement === 'after') toIndex = rawToIndex + 1;
-      if (fromIndex < toIndex) toIndex -= 1;
+      const movingItems = prev.filter((el) => draggedSelectionSet.has(el.id));
+      if (movingItems.length === 0) return prev;
 
-      toIndex = Math.max(0, Math.min(prev.length - 1, toIndex));
-      if (toIndex === fromIndex) return prev;
-      return moveItem(prev, fromIndex, toIndex);
+      const remaining = prev.filter((el) => !draggedSelectionSet.has(el.id));
+
+      let insertIndex = remaining.length;
+      if (toId) {
+        const targetIndex = remaining.findIndex((el) => el.id === toId);
+        if (targetIndex < 0) return prev;
+        insertIndex = placement === 'after' ? targetIndex + 1 : targetIndex;
+      }
+
+      const next = [...remaining];
+      next.splice(insertIndex, 0, ...movingItems);
+      return next;
     });
   };
 
   const moveSelectedBy = (offset) => {
-    if (!selectedId || offset === 0) return;
-
+    if (selectedIds.length !== 1 || offset === 0) return;
+    const selectedId = selectedIds[0];
     applyChange((prev) => {
-      const currentIndex = prev.findIndex((el) => el.id === selectedId);
-      if (currentIndex < 0) return prev;
-      const targetIndex = Math.max(0, Math.min(prev.length - 1, currentIndex + offset));
-      if (targetIndex === currentIndex) return prev;
-      return moveItem(prev, currentIndex, targetIndex);
+      const current = prev.findIndex((el) => el.id === selectedId);
+      if (current < 0) return prev;
+      const target = Math.max(0, Math.min(prev.length - 1, current + offset));
+      if (target === current) return prev;
+      return moveItem(prev, current, target);
     });
+  };
+
+  const toggleLockSelected = () => {
+    if (selectedIds.length === 0) return;
+    const selected = elements.filter((el) => selectedIds.includes(el.id));
+    const shouldLock = selected.some((el) => !el.props?.locked);
+    applyChange((prev) =>
+      prev.map((el) =>
+        selectedIds.includes(el.id) ? { ...el, props: { ...el.props, locked: shouldLock } } : el
+      )
+    );
+    pushToast(shouldLock ? 'Selection locked' : 'Selection unlocked', 'success');
+  };
+
+  const groupSelected = () => {
+    if (selectedIds.length < 2) return;
+    const groupId = `group-${Date.now().toString(36)}`;
+    applyChange((prev) =>
+      prev.map((el) =>
+        selectedIds.includes(el.id) ? { ...el, props: { ...el.props, groupId } } : el
+      )
+    );
+    pushToast('Selection grouped', 'success');
+  };
+
+  const ungroupSelected = () => {
+    if (selectedIds.length === 0) return;
+    const selectedSet = new Set(selectedIds);
+    const selectedGroupIds = new Set(
+      elements
+        .filter((el) => selectedSet.has(el.id))
+        .map((el) => el.props?.groupId)
+        .filter(Boolean)
+    );
+    applyChange((prev) =>
+      prev.map((el) => {
+        const inSelection = selectedSet.has(el.id);
+        const inSelectedGroup =
+          el.props?.groupId && selectedGroupIds.has(el.props.groupId);
+        if (inSelection || inSelectedGroup) {
+          return { ...el, props: { ...el.props, groupId: null } };
+        }
+        return el;
+      })
+    );
+    pushToast('Selection ungrouped', 'success');
+  };
+
+  const distributeSpacing = () => {
+    if (canvasLayout !== 'free' || selectedIds.length < 3) {
+      return pushToast('Need 3+ selected items in Free layout', 'info');
+    }
+    const selected = elements
+      .filter((el) => selectedIds.includes(el.id))
+      .filter((el) => !el.props?.locked)
+      .map((el) => ({
+        id: el.id,
+        x: typeof el.props?.x === 'number' ? el.props.x : 0,
+      }))
+      .sort((a, b) => a.x - b.x);
+    if (selected.length < 3) return pushToast('Not enough unlocked items', 'info');
+    const first = selected[0].x;
+    const last = selected[selected.length - 1].x;
+    const step = (last - first) / (selected.length - 1);
+    const xMap = new Map(selected.map((item, i) => [item.id, Math.round(first + i * step)]));
+    applyChange((prev) =>
+      prev.map((el) =>
+        xMap.has(el.id) ? { ...el, props: { ...el.props, x: xMap.get(el.id) } } : el
+      )
+    );
+    pushToast('Horizontal spacing distributed', 'success');
   };
 
   const undo = () => {
     if (history.length === 0) return;
     const previous = history[history.length - 1];
     setHistory((h) => h.slice(0, -1));
-    setFuture((f) => [elements, ...f]);
+    setFuture((f) => [elements, ...f].slice(0, HISTORY_LIMIT));
     setElements(previous);
-    if (selectedId && !previous.some((el) => el.id === selectedId)) {
-      setSelectedId(null);
-    }
+    setSelectedIds((prev) => prev.filter((id) => previous.some((el) => el.id === id)));
     pushToast('Undo', 'info');
   };
 
@@ -251,98 +298,77 @@ export default function App() {
     if (future.length === 0) return;
     const next = future[0];
     setFuture((f) => f.slice(1));
-    setHistory((h) => [...h, elements]);
+    setHistory((h) => [...h, elements].slice(-HISTORY_LIMIT));
     setElements(next);
-    if (selectedId && !next.some((el) => el.id === selectedId)) {
-      setSelectedId(null);
-    }
+    setSelectedIds((prev) => prev.filter((id) => next.some((el) => el.id === id)));
     pushToast('Redo', 'info');
   };
 
   const openThemeEditor = () => {
-    setDraftThemeName(`Custom ${allThemes.length - themes.length + 1}`);
-    setDraftThemeVars(activeTheme.vars);
+    const editable = customThemes.find((t) => t.id === themeId);
+    setEditingThemeId(editable?.id || null);
+    setDraftThemeName(editable?.name || `Custom ${customThemes.length + 1}`);
+    setDraftThemeVars(editable?.vars || activeTheme.vars);
     setThemeEditorOpen(true);
   };
 
   const saveCustomTheme = () => {
     const name = draftThemeName.trim();
-    if (!name) {
-      pushToast('Theme name is required', 'error');
-      return;
+    if (!name) return pushToast('Theme name is required', 'error');
+
+    if (editingThemeId) {
+      setCustomThemes((prev) => prev.map((t) => (t.id === editingThemeId ? { ...t, name, vars: { ...draftThemeVars } } : t)));
+      pushToast('Custom theme updated', 'success');
+    } else {
+      const id = `custom-${slugify(name)}-${Date.now().toString(36).slice(-4)}`;
+      const newTheme = { id, name, vars: { ...draftThemeVars } };
+      setCustomThemes((prev) => [...prev, newTheme]);
+      setThemeId(id);
+      pushToast('Custom theme saved', 'success');
     }
 
-    const id = `custom-${slugify(name)}-${Date.now().toString(36).slice(-4)}`;
-    const newTheme = { id, name, vars: { ...draftThemeVars } };
-    setCustomThemes((prev) => [...prev, newTheme]);
-    setThemeId(id);
     setThemeEditorOpen(false);
-    pushToast('Custom theme saved', 'success');
+    setEditingThemeId(null);
+  };
+
+  const deleteCurrentCustomTheme = () => {
+    const current = customThemes.find((t) => t.id === themeId);
+    if (!current) return pushToast('Current theme is built-in', 'info');
+    if (!window.confirm(`Delete theme "${current.name}"?`)) return;
+    setCustomThemes((prev) => prev.filter((t) => t.id !== current.id));
+    setThemeId(defaultThemeId);
+    pushToast('Custom theme deleted', 'success');
   };
 
   useEffect(() => {
     const isTypingContext = (target) => {
       if (!target) return false;
       const tag = target.tagName?.toLowerCase();
-      return (
-        tag === 'input' ||
-        tag === 'textarea' ||
-        tag === 'select' ||
-        target.isContentEditable
-      );
+      return tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable;
     };
 
     const onKeyDown = (event) => {
       if (isTypingContext(event.target)) return;
-
       const key = event.key.toLowerCase();
-      const ctrlOrCmd = event.ctrlKey || event.metaKey;
+      const cmd = event.ctrlKey || event.metaKey;
 
-      if (key === '?') {
-        event.preventDefault();
-        setHelpOpen(true);
-        return;
-      }
-
-      if (key === 'delete' || key === 'backspace') {
-        event.preventDefault();
-        deleteSelected(false);
-        return;
-      }
-
-      if (!ctrlOrCmd) return;
-
-      if (key === 'd') {
-        event.preventDefault();
-        duplicateSelected();
-        return;
-      }
-
-      if (key === 'z' && event.shiftKey) {
-        event.preventDefault();
-        redo();
-        return;
-      }
-
-      if (key === 'z') {
-        event.preventDefault();
-        undo();
-      }
+      if (key === '?') { event.preventDefault(); setHelpOpen(true); return; }
+      if (key === 'delete' || key === 'backspace') { event.preventDefault(); deleteSelected(false); return; }
+      if (!cmd) return;
+      if (key === 'd') { event.preventDefault(); duplicateSelected(); return; }
+      if (key === 'z' && event.shiftKey) { event.preventDefault(); redo(); return; }
+      if (key === 'z') { event.preventDefault(); undo(); }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedId, history, future, elements]);
+  }, [selectedIds, history, future, elements]);
 
-  const projectFilesByTarget = useMemo(
-    () => generateProjectFiles(elements, activeTheme),
-    [elements, activeTheme]
-  );
+  const projectFilesByTarget = useMemo(() => generateProjectFiles(elements, activeTheme), [elements, activeTheme]);
 
   const copyFile = async (target, fileName) => {
     const content = projectFilesByTarget?.[target]?.[fileName];
     if (!content) return;
-
     try {
       await navigator.clipboard.writeText(content);
       pushToast(`${fileName} copied (${target})`, 'success');
@@ -354,18 +380,12 @@ export default function App() {
   const downloadZip = async (target) => {
     try {
       const zip = new JSZip();
-      Object.entries(projectFilesByTarget?.[target] || {}).forEach(([path, content]) =>
-        zip.file(path, content)
-      );
+      Object.entries(projectFilesByTarget?.[target] || {}).forEach(([path, content]) => zip.file(path, content));
       const blob = await zip.generateAsync({ type: 'blob' });
-
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download =
-        target === 'mobile'
-          ? 'nocode-forge-mobile-expo-export.zip'
-          : 'nocode-forge-web-export.zip';
+      anchor.download = target === 'mobile' ? 'nocode-forge-mobile-expo-export.zip' : 'nocode-forge-web-export.zip';
       anchor.click();
       URL.revokeObjectURL(url);
       pushToast(`ZIP downloaded (${target})`, 'success');
@@ -375,15 +395,13 @@ export default function App() {
   };
 
   return (
-    <div
-      className="min-h-screen text-slate-900"
-      style={{ backgroundColor: 'var(--ncf-app-bg)', ...activeTheme.vars }}
-    >
+    <div className="min-h-screen text-slate-900" style={{ backgroundColor: 'var(--ncf-app-bg)', ...activeTheme.vars }}>
       <Header
         onPreview={() => setPreviewOpen(true)}
         onExport={() => setExportOpen(true)}
         onClear={clearCanvas}
         onOpenThemeEditor={openThemeEditor}
+        onDeleteTheme={deleteCurrentCustomTheme}
         onOpenHelp={() => setHelpOpen(true)}
         previewMode={previewOpen}
         themeId={themeId}
@@ -402,46 +420,41 @@ export default function App() {
           elements={elements}
           viewport={viewport}
           onViewportChange={setViewport}
-          selectedId={selectedId}
+          canvasLayout={canvasLayout}
+          onCanvasLayoutChange={setCanvasLayout}
+          selectedIds={selectedIds}
           canUndo={history.length > 0}
           canRedo={future.length > 0}
           onUndo={undo}
           onRedo={redo}
           onDuplicateSelected={duplicateSelected}
-          onSelect={setSelectedId}
+          onSelect={onSelectElement}
           onDeleteSelected={() => deleteSelected(true)}
           onReorder={reorderElements}
           onMoveSelectedUp={() => moveSelectedBy(-1)}
           onMoveSelectedDown={() => moveSelectedBy(1)}
           onInlineEdit={updateElementById}
+          onDistributeSpacing={distributeSpacing}
+          onGroupSelected={groupSelected}
+          onUngroupSelected={ungroupSelected}
+          onToggleLockSelected={toggleLockSelected}
           previewMode={false}
         />
 
-        <PropertiesPanel selectedElement={selectedElement} onUpdate={updateElement} />
+        <PropertiesPanel selectedElement={selectedElement} onUpdate={updateSelected} />
       </main>
 
-      <button
-        onClick={() => setHelpOpen(true)}
-        className="fixed bottom-4 right-4 z-40 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl hover:bg-slate-700"
-      >
-        ? Help
-      </button>
+      <button onClick={() => setHelpOpen(true)} className="fixed bottom-4 right-4 z-40 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl hover:bg-slate-700">? Help</button>
 
       <PreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} elements={elements} />
-      <CodeExporter
-        open={exportOpen}
-        filesByTarget={projectFilesByTarget}
-        onClose={() => setExportOpen(false)}
-        onCopy={copyFile}
-        onDownloadZip={downloadZip}
-      />
+      <CodeExporter open={exportOpen} filesByTarget={projectFilesByTarget} onClose={() => setExportOpen(false)} onCopy={copyFile} onDownloadZip={downloadZip} />
       <ThemeEditorModal
         open={themeEditorOpen}
         draftName={draftThemeName}
         draftVars={draftThemeVars}
         onNameChange={setDraftThemeName}
         onVarChange={(key, value) => setDraftThemeVars((prev) => ({ ...prev, [key]: value }))}
-        onClose={() => setThemeEditorOpen(false)}
+        onClose={() => { setThemeEditorOpen(false); setEditingThemeId(null); }}
         onSave={saveCustomTheme}
       />
       <HelpCenter open={helpOpen} onClose={() => setHelpOpen(false)} />

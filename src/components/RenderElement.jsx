@@ -2,14 +2,7 @@ import { useRef } from 'react';
 
 const classesFromProps = (element) => {
   const p = element.props || {};
-  return [
-    p.textColor,
-    p.backgroundColor,
-    p.padding,
-    p.radius,
-    p.fontSize,
-    element.className,
-  ]
+  return [p.textColor, p.backgroundColor, p.padding, p.radius, p.fontSize, element.className]
     .filter(Boolean)
     .join(' ');
 };
@@ -23,13 +16,7 @@ const parseSize = (value) => {
   return null;
 };
 
-export default function RenderElement({
-  element,
-  selected,
-  onSelect,
-  onInlineEdit,
-  previewMode,
-}) {
+export default function RenderElement({ element, selected, onSelect, onInlineEdit, previewMode }) {
   const rootRef = useRef(null);
   const selectedRing = selected && !previewMode ? 'ring-2 ring-brand-500 ring-offset-2' : '';
   const base = `${classesFromProps(element)} ${selectedRing}`.trim();
@@ -45,13 +32,13 @@ export default function RenderElement({
   const onContainerClick = (e) => {
     if (!previewMode) {
       e.stopPropagation();
-      onSelect(element.id);
+      onSelect(element.id, e.shiftKey);
     }
   };
 
   const onInlineInput = (e) => {
     if (previewMode || !onInlineEdit) return;
-    onInlineEdit(element.id, 'content', e.currentTarget.textContent || '');
+    onInlineEdit(element.id, 'content', e.currentTarget.textContent || '', { coalesceKey: `content:${element.id}` });
   };
 
   const startResize = (event) => {
@@ -68,8 +55,8 @@ export default function RenderElement({
     const onMouseMove = (moveEvent) => {
       const nextWidth = Math.max(80, Math.round(startWidth + (moveEvent.clientX - startX)));
       const nextHeight = Math.max(40, Math.round(startHeight + (moveEvent.clientY - startY)));
-      onInlineEdit(element.id, 'props.width', nextWidth);
-      onInlineEdit(element.id, 'props.height', nextHeight);
+      onInlineEdit(element.id, 'props.width', nextWidth, { coalesceKey: `resize:${element.id}` });
+      onInlineEdit(element.id, 'props.height', nextHeight, { coalesceKey: `resize:${element.id}` });
     };
 
     const onMouseUp = () => {
@@ -81,35 +68,14 @@ export default function RenderElement({
     window.addEventListener('mouseup', onMouseUp);
   };
 
-  const sharedProps = {
-    className: base,
-    onClick: onContainerClick,
-  };
+  const sharedProps = { className: base, onClick: onContainerClick };
 
   const renderNode = () => {
     switch (element.type) {
       case 'text':
-        return (
-          <p
-            {...sharedProps}
-            contentEditable={!previewMode && selected}
-            suppressContentEditableWarning
-            onInput={onInlineInput}
-          >
-            {element.content}
-          </p>
-        );
+        return <p {...sharedProps} contentEditable={!previewMode && selected} suppressContentEditableWarning onInput={onInlineInput}>{element.content}</p>;
       case 'button':
-        return (
-          <button
-            {...sharedProps}
-            contentEditable={!previewMode && selected}
-            suppressContentEditableWarning
-            onInput={onInlineInput}
-          >
-            {element.content}
-          </button>
-        );
+        return <button {...sharedProps} contentEditable={!previewMode && selected} suppressContentEditableWarning onInput={onInlineInput}>{element.content}</button>;
       case 'image':
         return <img {...sharedProps} src={element.content} alt="builder visual" />;
       case 'card': {
@@ -118,11 +84,6 @@ export default function RenderElement({
           <div {...sharedProps}>
             <h3 className="text-lg font-semibold">{title || 'Card title'}</h3>
             <p className="mt-2 text-slate-600">{description || 'Card description'}</p>
-            {!previewMode && selected ? (
-              <p className="mt-3 text-xs text-slate-400">
-                Edit title/description from Properties panel (line break for split).
-              </p>
-            ) : null}
           </div>
         );
       }
@@ -132,46 +93,17 @@ export default function RenderElement({
             {...sharedProps}
             placeholder={element.content || 'Type here'}
             className={`${base} border border-slate-300`.trim()}
-            onChange={(e) => onInlineEdit?.(element.id, 'content', e.target.value)}
+            onChange={(e) => onInlineEdit?.(element.id, 'content', e.target.value, { coalesceKey: `content:${element.id}` })}
             readOnly={previewMode || !selected}
             value={selected && !previewMode ? element.content : ''}
           />
         );
       case 'section':
-        return (
-          <section {...sharedProps}>
-            <h2
-              className="text-2xl font-bold"
-              contentEditable={!previewMode && selected}
-              suppressContentEditableWarning
-              onInput={onInlineInput}
-            >
-              {element.content}
-            </h2>
-          </section>
-        );
+        return <section {...sharedProps}><h2 className="text-2xl font-bold" contentEditable={!previewMode && selected} suppressContentEditableWarning onInput={onInlineInput}>{element.content}</h2></section>;
       case 'navbar':
-        return (
-          <nav
-            {...sharedProps}
-            contentEditable={!previewMode && selected}
-            suppressContentEditableWarning
-            onInput={onInlineInput}
-          >
-            {element.content}
-          </nav>
-        );
+        return <nav {...sharedProps} contentEditable={!previewMode && selected} suppressContentEditableWarning onInput={onInlineInput}>{element.content}</nav>;
       case 'footer':
-        return (
-          <footer
-            {...sharedProps}
-            contentEditable={!previewMode && selected}
-            suppressContentEditableWarning
-            onInput={onInlineInput}
-          >
-            {element.content}
-          </footer>
-        );
+        return <footer {...sharedProps} contentEditable={!previewMode && selected} suppressContentEditableWarning onInput={onInlineInput}>{element.content}</footer>;
       default:
         return <div {...sharedProps}>{element.content}</div>;
     }
@@ -181,12 +113,7 @@ export default function RenderElement({
     <div ref={rootRef} style={boxStyle} className="group relative inline-block max-w-full align-top">
       {renderNode()}
       {selected && !previewMode ? (
-        <button
-          type="button"
-          aria-label="Resize"
-          onMouseDown={startResize}
-          className="absolute -bottom-2 -right-2 h-4 w-4 cursor-se-resize rounded-sm border border-brand-700 bg-brand-500"
-        />
+        <button type="button" aria-label="Resize" onMouseDown={startResize} className="absolute -bottom-2 -right-2 h-4 w-4 cursor-se-resize rounded-sm border border-brand-700 bg-brand-500" />
       ) : null}
     </div>
   );
