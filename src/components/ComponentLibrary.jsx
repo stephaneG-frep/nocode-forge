@@ -4,7 +4,7 @@ export default function ComponentLibrary({ onAdd }) {
   return (
     <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-        Component library
+        Bibliotheque
       </h2>
       <div className="space-y-3">
         {componentLibrary.map((item) => (
@@ -17,7 +17,7 @@ export default function ComponentLibrary({ onAdd }) {
               onClick={() => onAdd(item.type)}
               className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700"
             >
-              Add
+              Ajouter
             </button>
           </div>
         ))}

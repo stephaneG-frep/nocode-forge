@@ -9,13 +9,13 @@ const keys = [
 ];
 
 const labels = {
-  '--ncf-app-bg': 'App background',
+  '--ncf-app-bg': 'Fond general',
   '--ncf-surface': 'Surface',
-  '--ncf-surface-soft': 'Surface soft',
-  '--ncf-text': 'Text',
-  '--ncf-muted': 'Muted text',
+  '--ncf-surface-soft': 'Surface douce',
+  '--ncf-text': 'Texte',
+  '--ncf-muted': 'Texte discret',
   '--ncf-accent': 'Accent',
-  '--ncf-accent-strong': 'Accent strong',
+  '--ncf-accent-strong': 'Accent fort',
 };
 
 export default function ThemeEditorModal({
@@ -33,21 +33,21 @@ export default function ThemeEditorModal({
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4">
       <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Theme Editor</h3>
+          <h3 className="text-lg font-semibold text-slate-900">Editeur de theme</h3>
           <button
             onClick={onClose}
             className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
           >
-            Close
+            Fermer
           </button>
         </div>
 
         <label className="mb-4 block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Theme name</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nom du theme</span>
           <input
             value={draftName}
             onChange={(e) => onNameChange(e.target.value)}
-            placeholder="My Custom Theme"
+            placeholder="Mon theme"
             className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800"
           />
         </label>
@@ -80,7 +80,7 @@ export default function ThemeEditorModal({
             onClick={onSave}
             className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
           >
-            Save theme
+            Enregistrer
           </button>
         </div>
       </div>

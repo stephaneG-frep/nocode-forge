@@ -60,7 +60,7 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
   const [toasts, setToasts] = useState([]);
-  const [draftThemeName, setDraftThemeName] = useState('My Custom Theme');
+  const [draftThemeName, setDraftThemeName] = useState('Mon theme');
   const [draftThemeVars, setDraftThemeVars] = useState(getThemeById(defaultThemeId).vars);
   const [editingThemeId, setEditingThemeId] = useState(null);
 
@@ -142,10 +142,10 @@ export default function App() {
 
   const deleteSelected = (askConfirm = true) => {
     if (selectedIds.length === 0) return;
-    if (askConfirm && !window.confirm(`Delete ${selectedIds.length} selected component(s)?`)) return;
+    if (askConfirm && !window.confirm(`Supprimer ${selectedIds.length} element(s) selectionne(s) ?`)) return;
     applyChange((prev) => prev.filter((el) => !selectedIds.includes(el.id)));
     setSelectedIds([]);
-    pushToast('Selection deleted', 'success');
+    pushToast('Selection supprimee', 'success');
   };
 
   const duplicateSelected = () => {
@@ -164,15 +164,15 @@ export default function App() {
       return next;
     });
     setSelectedIds(newIds);
-    pushToast('Selection duplicated', 'success');
+    pushToast('Selection dupliquee', 'success');
   };
 
   const clearCanvas = () => {
     if (elements.length === 0) return;
-    if (!window.confirm('Clear the whole canvas?')) return;
+    if (!window.confirm('Tout effacer ?')) return;
     applyChange(() => []);
     setSelectedIds([]);
-    pushToast('Canvas cleared', 'success');
+    pushToast('Zone videe', 'success');
   };
 
   const reorderElements = (fromId, toId, placement = 'before', dragSelectionIds = []) => {
@@ -222,7 +222,7 @@ export default function App() {
         selectedIds.includes(el.id) ? { ...el, props: { ...el.props, locked: shouldLock } } : el
       )
     );
-    pushToast(shouldLock ? 'Selection locked' : 'Selection unlocked', 'success');
+    pushToast(shouldLock ? 'Selection verrouillee' : 'Selection deverrouillee', 'success');
   };
 
   const groupSelected = () => {
@@ -233,7 +233,7 @@ export default function App() {
         selectedIds.includes(el.id) ? { ...el, props: { ...el.props, groupId } } : el
       )
     );
-    pushToast('Selection grouped', 'success');
+    pushToast('Selection groupee', 'success');
   };
 
   const ungroupSelected = () => {
@@ -256,12 +256,12 @@ export default function App() {
         return el;
       })
     );
-    pushToast('Selection ungrouped', 'success');
+    pushToast('Selection degroupee', 'success');
   };
 
   const distributeSpacing = () => {
     if (canvasLayout !== 'free' || selectedIds.length < 3) {
-      return pushToast('Need 3+ selected items in Free layout', 'info');
+      return pushToast('Il faut 3 elements selectionnes en mode Libre', 'info');
     }
     const selected = elements
       .filter((el) => selectedIds.includes(el.id))
@@ -271,7 +271,7 @@ export default function App() {
         x: typeof el.props?.x === 'number' ? el.props.x : 0,
       }))
       .sort((a, b) => a.x - b.x);
-    if (selected.length < 3) return pushToast('Not enough unlocked items', 'info');
+    if (selected.length < 3) return pushToast('Pas assez d elements deverrouilles', 'info');
     const first = selected[0].x;
     const last = selected[selected.length - 1].x;
     const step = (last - first) / (selected.length - 1);
@@ -281,7 +281,28 @@ export default function App() {
         xMap.has(el.id) ? { ...el, props: { ...el.props, x: xMap.get(el.id) } } : el
       )
     );
-    pushToast('Horizontal spacing distributed', 'success');
+    pushToast('Espacement applique', 'success');
+  };
+
+  const applyFreeOrder = () => {
+    applyChange((prev) =>
+      [...prev].sort((a, b) => {
+        const ay = typeof a.props?.y === 'number' ? a.props.y : 0;
+        const by = typeof b.props?.y === 'number' ? b.props.y : 0;
+        const ax = typeof a.props?.x === 'number' ? a.props.x : 0;
+        const bx = typeof b.props?.x === 'number' ? b.props.x : 0;
+
+        return ay === by ? ax - bx : ay - by;
+      })
+    );
+    pushToast('Ordre visuel conserve', 'success');
+  };
+
+  const changeCanvasLayout = (nextLayout) => {
+    if (canvasLayout === 'free' && nextLayout !== 'free') {
+      applyFreeOrder();
+    }
+    setCanvasLayout(nextLayout);
   };
 
   const undo = () => {
@@ -291,7 +312,7 @@ export default function App() {
     setFuture((f) => [elements, ...f].slice(0, HISTORY_LIMIT));
     setElements(previous);
     setSelectedIds((prev) => prev.filter((id) => previous.some((el) => el.id === id)));
-    pushToast('Undo', 'info');
+    pushToast('Annule', 'info');
   };
 
   const redo = () => {
@@ -301,30 +322,30 @@ export default function App() {
     setHistory((h) => [...h, elements].slice(-HISTORY_LIMIT));
     setElements(next);
     setSelectedIds((prev) => prev.filter((id) => next.some((el) => el.id === id)));
-    pushToast('Redo', 'info');
+    pushToast('Retabli', 'info');
   };
 
   const openThemeEditor = () => {
     const editable = customThemes.find((t) => t.id === themeId);
     setEditingThemeId(editable?.id || null);
-    setDraftThemeName(editable?.name || `Custom ${customThemes.length + 1}`);
+    setDraftThemeName(editable?.name || `Theme ${customThemes.length + 1}`);
     setDraftThemeVars(editable?.vars || activeTheme.vars);
     setThemeEditorOpen(true);
   };
 
   const saveCustomTheme = () => {
     const name = draftThemeName.trim();
-    if (!name) return pushToast('Theme name is required', 'error');
+    if (!name) return pushToast('Le nom du theme est obligatoire', 'error');
 
     if (editingThemeId) {
       setCustomThemes((prev) => prev.map((t) => (t.id === editingThemeId ? { ...t, name, vars: { ...draftThemeVars } } : t)));
-      pushToast('Custom theme updated', 'success');
+      pushToast('Theme modifie', 'success');
     } else {
       const id = `custom-${slugify(name)}-${Date.now().toString(36).slice(-4)}`;
       const newTheme = { id, name, vars: { ...draftThemeVars } };
       setCustomThemes((prev) => [...prev, newTheme]);
       setThemeId(id);
-      pushToast('Custom theme saved', 'success');
+      pushToast('Theme enregistre', 'success');
     }
 
     setThemeEditorOpen(false);
@@ -333,11 +354,11 @@ export default function App() {
 
   const deleteCurrentCustomTheme = () => {
     const current = customThemes.find((t) => t.id === themeId);
-    if (!current) return pushToast('Current theme is built-in', 'info');
-    if (!window.confirm(`Delete theme "${current.name}"?`)) return;
+    if (!current) return pushToast('Ce theme est integre', 'info');
+    if (!window.confirm(`Supprimer le theme "${current.name}" ?`)) return;
     setCustomThemes((prev) => prev.filter((t) => t.id !== current.id));
     setThemeId(defaultThemeId);
-    pushToast('Custom theme deleted', 'success');
+    pushToast('Theme supprime', 'success');
   };
 
   useEffect(() => {
@@ -371,9 +392,9 @@ export default function App() {
     if (!content) return;
     try {
       await navigator.clipboard.writeText(content);
-      pushToast(`${fileName} copied (${target})`, 'success');
+      pushToast(`${fileName} copie (${target})`, 'success');
     } catch {
-      pushToast('Copy failed', 'error');
+      pushToast('Copie impossible', 'error');
     }
   };
 
@@ -388,9 +409,9 @@ export default function App() {
       anchor.download = target === 'mobile' ? 'nocode-forge-mobile-expo-export.zip' : 'nocode-forge-web-export.zip';
       anchor.click();
       URL.revokeObjectURL(url);
-      pushToast(`ZIP downloaded (${target})`, 'success');
+      pushToast(`ZIP telecharge (${target})`, 'success');
     } catch {
-      pushToast('ZIP export failed', 'error');
+      pushToast('Export ZIP impossible', 'error');
     }
   };
 
@@ -409,7 +430,7 @@ export default function App() {
         onChangeTheme={(id) => {
           setThemeId(id);
           const theme = allThemes.find((item) => item.id === id);
-          pushToast(`Theme: ${theme?.name || id}`, 'info');
+          pushToast(`Theme : ${theme?.name || id}`, 'info');
         }}
       />
 
@@ -421,7 +442,7 @@ export default function App() {
           viewport={viewport}
           onViewportChange={setViewport}
           canvasLayout={canvasLayout}
-          onCanvasLayoutChange={setCanvasLayout}
+          onCanvasLayoutChange={changeCanvasLayout}
           selectedIds={selectedIds}
           canUndo={history.length > 0}
           canRedo={future.length > 0}
@@ -438,13 +459,14 @@ export default function App() {
           onGroupSelected={groupSelected}
           onUngroupSelected={ungroupSelected}
           onToggleLockSelected={toggleLockSelected}
+          onApplyFreeOrder={applyFreeOrder}
           previewMode={false}
         />
 
         <PropertiesPanel selectedElement={selectedElement} onUpdate={updateSelected} />
       </main>
 
-      <button onClick={() => setHelpOpen(true)} className="fixed bottom-4 right-4 z-40 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl hover:bg-slate-700">? Help</button>
+      <button onClick={() => setHelpOpen(true)} className="fixed bottom-4 right-4 z-40 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl hover:bg-slate-700">? Aide</button>
 
       <PreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} elements={elements} />
       <CodeExporter open={exportOpen} filesByTarget={projectFilesByTarget} onClose={() => setExportOpen(false)} onCopy={copyFile} onDownloadZip={downloadZip} />

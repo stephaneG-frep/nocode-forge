@@ -38,6 +38,19 @@ export const themes = [
       '--ncf-accent-strong': '#9a4f21',
     },
   },
+  {
+    id: 'midnight-blue',
+    name: 'Midnight Blue',
+    vars: {
+      '--ncf-app-bg': '#07111f',
+      '--ncf-surface': '#0f1f33',
+      '--ncf-surface-soft': '#132b46',
+      '--ncf-text': '#e6f1ff',
+      '--ncf-muted': '#9db4d3',
+      '--ncf-accent': '#2f80ed',
+      '--ncf-accent-strong': '#1b4f9c',
+    },
+  },
 ];
 
 export const defaultThemeId = themes[0].id;

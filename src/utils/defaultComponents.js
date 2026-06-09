@@ -13,14 +13,14 @@ const baseProps = {
 };
 
 export const componentLibrary = [
-  { type: 'text', label: 'Text' },
-  { type: 'button', label: 'Button' },
+  { type: 'text', label: 'Texte' },
+  { type: 'button', label: 'Bouton' },
   { type: 'image', label: 'Image' },
-  { type: 'card', label: 'Card' },
-  { type: 'input', label: 'Input' },
+  { type: 'card', label: 'Carte' },
+  { type: 'input', label: 'Champ' },
   { type: 'section', label: 'Section' },
-  { type: 'navbar', label: 'Navbar' },
-  { type: 'footer', label: 'Footer' },
+  { type: 'navbar', label: 'Menu' },
+  { type: 'footer', label: 'Pied de page' },
 ];
 
 const uid = () =>

@@ -26,6 +26,7 @@ export default function BuilderCanvas({
   onGroupSelected,
   onUngroupSelected,
   onToggleLockSelected,
+  onApplyFreeOrder,
   previewMode,
   viewport,
   onViewportChange,
@@ -65,9 +66,10 @@ export default function BuilderCanvas({
   );
 
   const startFreeMove = (element, event) => {
-    if (previewMode) return;
+    if (previewMode || element.props?.locked) return;
     event.preventDefault();
     event.stopPropagation();
+    onSelect(element.id, event.shiftKey);
 
     const startClientX = event.clientX;
     const startClientY = event.clientY;
@@ -179,26 +181,28 @@ export default function BuilderCanvas({
     };
 
     const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
       setGuide(null);
     };
 
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Canvas</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Zone de creation</h2>
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={viewport}
             onChange={(e) => onViewportChange?.(e.target.value)}
             className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
           >
-            <option value="desktop">Desktop</option>
+            <option value="desktop">Ordinateur</option>
             <option value="iphone">iPhone</option>
             <option value="android">Android</option>
             <option value="tablet">Tablet</option>
@@ -209,9 +213,9 @@ export default function BuilderCanvas({
             onChange={(e) => onCanvasLayoutChange?.(e.target.value)}
             className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
           >
-            <option value="column">Stacked</option>
-            <option value="row">Row grid</option>
-            <option value="free">Free</option>
+            <option value="column">Vertical</option>
+            <option value="row">Grille</option>
+            <option value="free">Libre</option>
           </select>
           {isFreeLayout ? (
             <button
@@ -223,7 +227,7 @@ export default function BuilderCanvas({
                   : 'border border-slate-300 bg-white text-slate-700'
               }`}
             >
-              Snap {snapEnabled ? 'ON' : 'OFF'}
+              Grille {snapEnabled ? 'ON' : 'OFF'}
             </button>
           ) : null}
           {isFreeLayout ? (
@@ -236,20 +240,29 @@ export default function BuilderCanvas({
                   : 'border border-slate-300 bg-white text-slate-700'
               }`}
             >
-              Magnet {magnetEnabled ? 'ON' : 'OFF'}
+              Aimant {magnetEnabled ? 'ON' : 'OFF'}
+            </button>
+          ) : null}
+          {isFreeLayout ? (
+            <button
+              type="button"
+              onClick={onApplyFreeOrder}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+            >
+              Garder l'ordre
             </button>
           ) : null}
 
-          <button onClick={onUndo} disabled={!canUndo || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Undo</button>
-          <button onClick={onRedo} disabled={!canRedo || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Redo</button>
-          <button onClick={onDuplicateSelected} disabled={selectedIds.length === 0 || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Duplicate</button>
-          <button onClick={onGroupSelected} disabled={selectedIds.length < 2 || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Group</button>
-          <button onClick={onUngroupSelected} disabled={selectedIds.length === 0 || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Ungroup</button>
-          <button onClick={onToggleLockSelected} disabled={selectedIds.length === 0 || previewMode} className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 disabled:cursor-not-allowed disabled:opacity-40">Lock/Unlock</button>
-          <button onClick={onDistributeSpacing} disabled={!isFreeLayout || selectedIds.length < 3 || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Distribute X</button>
-          <button onClick={onMoveSelectedUp} disabled={selectedIds.length !== 1 || previewMode || isFreeLayout} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Move up</button>
-          <button onClick={onMoveSelectedDown} disabled={selectedIds.length !== 1 || previewMode || isFreeLayout} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Move down</button>
-          <button onClick={onDeleteSelected} disabled={selectedIds.length === 0 || previewMode} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 disabled:cursor-not-allowed disabled:opacity-40">Delete selected</button>
+          <button onClick={onUndo} disabled={!canUndo || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Annuler</button>
+          <button onClick={onRedo} disabled={!canRedo || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Retablir</button>
+          <button onClick={onDuplicateSelected} disabled={selectedIds.length === 0 || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Dupliquer</button>
+          <button onClick={onGroupSelected} disabled={selectedIds.length < 2 || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Grouper</button>
+          <button onClick={onUngroupSelected} disabled={selectedIds.length === 0 || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Degrouper</button>
+          <button onClick={onToggleLockSelected} disabled={selectedIds.length === 0 || previewMode} className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 disabled:cursor-not-allowed disabled:opacity-40">Verrouiller</button>
+          <button onClick={onDistributeSpacing} disabled={!isFreeLayout || selectedIds.length < 3 || previewMode} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Espacer</button>
+          <button onClick={onMoveSelectedUp} disabled={selectedIds.length !== 1 || previewMode || isFreeLayout} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Monter</button>
+          <button onClick={onMoveSelectedDown} disabled={selectedIds.length !== 1 || previewMode || isFreeLayout} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">Descendre</button>
+          <button onClick={onDeleteSelected} disabled={selectedIds.length === 0 || previewMode} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 disabled:cursor-not-allowed disabled:opacity-40">Supprimer</button>
         </div>
       </div>
 
@@ -272,7 +285,7 @@ export default function BuilderCanvas({
           style={{ width: frame.width, minHeight: frame.minHeight }}
         >
           {elements.length === 0 ? (
-            <div className="grid min-h-[430px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white/60 text-center text-slate-500">Add components to start building</div>
+            <div className="grid min-h-[430px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white/60 text-center text-slate-500">Ajoute un composant pour commencer</div>
           ) : isFreeLayout ? (
             <div
               className="relative min-h-[430px] rounded-xl border border-dashed border-slate-200 bg-white/70"
@@ -295,16 +308,26 @@ export default function BuilderCanvas({
               {positionedElements.map((element) => (
                 <div key={element.id} className="absolute" style={{ left: element._x, top: element._y }}>
                   {!previewMode ? (
-                    <div className="mb-2 flex justify-start">
+                    <div className="mb-2 flex items-center gap-2">
                       <button
                         type="button"
                         disabled={element.props?.locked}
-                        onMouseDown={(e) => startFreeMove(element, e)}
-                        className="cursor-move rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
-                        title="Move"
+                        onPointerDown={(e) => startFreeMove(element, e)}
+                        className="touch-none cursor-move rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        title="Deplacer"
                       >
-                        Move
+                        Deplacer
                       </button>
+                      {element.props?.locked ? (
+                        <span className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                          Verrouille
+                        </span>
+                      ) : null}
+                      {element.props?.groupId ? (
+                        <span className="rounded-md border border-brand-200 bg-brand-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
+                          Groupe
+                        </span>
+                      ) : null}
                     </div>
                   ) : null}
                   <RenderElement
@@ -360,9 +383,9 @@ export default function BuilderCanvas({
                               }}
                               onDragEnd={clearDragState}
                               className="cursor-grab rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-50"
-                              title="Drag"
+                              title="Glisser"
                             >
-                              Drag
+                              Glisser
                             </button>
                           </div>
                         ) : null}
@@ -389,7 +412,7 @@ export default function BuilderCanvas({
                   }}
                   className="mt-3 grid h-10 place-items-center rounded-lg border border-dashed border-slate-300 text-xs font-medium text-slate-400"
                 >
-                  Drop here to move at the end
+                  Deposer ici pour mettre a la fin
                 </div>
               ) : null}
             </>

@@ -42,9 +42,9 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
     return (
       <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Properties
+          Reglages
         </h2>
-        <p className="text-sm text-slate-500">Select a component to edit its properties.</p>
+        <p className="text-sm text-slate-500">Selectionne un element pour le modifier.</p>
       </aside>
     );
   }
@@ -53,10 +53,10 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
 
   return (
     <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Properties</h2>
+      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Reglages</h2>
       <div className="space-y-3">
         <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Text / content</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Texte / contenu</span>
           <textarea
             value={content}
             onChange={(e) => onUpdate('content', e.target.value)}
@@ -66,7 +66,7 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
         </label>
 
         <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Width (px)</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Largeur (px)</span>
           <input
             type="number"
             min="80"
@@ -78,7 +78,7 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
         </label>
 
         <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Height (px)</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hauteur (px)</span>
           <input
             type="number"
             min="40"
@@ -90,35 +90,35 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
         </label>
 
         <SelectField
-          label="Text color"
+          label="Couleur du texte"
           value={props.textColor}
           options={textColorOptions}
           onChange={(value) => onUpdate('props.textColor', value)}
         />
 
         <SelectField
-          label="Background color"
+          label="Couleur du fond"
           value={props.backgroundColor}
           options={backgroundOptions}
           onChange={(value) => onUpdate('props.backgroundColor', value)}
         />
 
         <SelectField
-          label="Font size"
+          label="Taille du texte"
           value={props.fontSize}
           options={fontSizeOptions}
           onChange={(value) => onUpdate('props.fontSize', value)}
         />
 
         <SelectField
-          label="Padding"
+          label="Espace interieur"
           value={props.padding}
           options={paddingOptions}
           onChange={(value) => onUpdate('props.padding', value)}
         />
 
         <SelectField
-          label="Border radius"
+          label="Coins arrondis"
           value={props.radius}
           options={radiusOptions}
           onChange={(value) => onUpdate('props.radius', value)}
@@ -126,7 +126,7 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
 
         <label className="block space-y-1">
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Custom Tailwind classes
+            Classes Tailwind avancees
           </span>
           <input
             value={className}
