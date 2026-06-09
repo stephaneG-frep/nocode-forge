@@ -193,9 +193,9 @@ export default function BuilderCanvas({
   };
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+    <section className="rounded-2xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface)] p-4 shadow-sm md:p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Zone de creation</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">Zone de creation</h2>
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={viewport}
@@ -272,7 +272,7 @@ export default function BuilderCanvas({
         </div>
       ) : null}
 
-      <div className="grid place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 md:p-6">
+      <div className="grid place-items-center rounded-2xl border border-dashed border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface-soft)] p-4 md:p-6">
         <div
           onClick={() => !previewMode && onSelect(null, false)}
           onDragOver={(e) => !previewMode && !isFreeLayout && e.preventDefault()}
@@ -285,10 +285,10 @@ export default function BuilderCanvas({
           style={{ width: frame.width, minHeight: frame.minHeight }}
         >
           {elements.length === 0 ? (
-            <div className="grid min-h-[430px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white/60 text-center text-slate-500">Ajoute un composant pour commencer</div>
+            <div className="grid min-h-[430px] place-items-center rounded-xl border border-dashed border-[color:var(--ncf-muted)] bg-[color:var(--ncf-surface)]/60 text-center text-[color:var(--ncf-muted)]">Ajoute un composant pour commencer</div>
           ) : isFreeLayout ? (
             <div
-              className="relative min-h-[430px] rounded-xl border border-dashed border-slate-200 bg-white/70"
+              className="relative min-h-[430px] rounded-xl border border-dashed border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface)]/70"
               style={
                 snapEnabled
                   ? {

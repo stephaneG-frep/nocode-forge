@@ -21,11 +21,11 @@ const radiusOptions = ['rounded-none', 'rounded-lg', 'rounded-xl', 'rounded-2xl'
 function SelectField({ label, value, options, onChange }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+        className="w-full rounded-xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface-soft)] px-3 py-2 text-sm text-[color:var(--ncf-text)]"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -40,11 +40,11 @@ function SelectField({ label, value, options, onChange }) {
 export default function PropertiesPanel({ selectedElement, onUpdate }) {
   if (!selectedElement) {
     return (
-      <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <aside className="rounded-2xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface)] p-4 shadow-sm">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">
           Reglages
         </h2>
-        <p className="text-sm text-slate-500">Selectionne un element pour le modifier.</p>
+        <p className="text-sm text-[color:var(--ncf-muted)]">Selectionne un element pour le modifier.</p>
       </aside>
     );
   }
@@ -52,39 +52,39 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
   const { content, props, className } = selectedElement;
 
   return (
-    <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Reglages</h2>
+    <aside className="rounded-2xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface)] p-4 shadow-sm">
+      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">Reglages</h2>
       <div className="space-y-3">
         <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Texte / contenu</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">Texte / contenu</span>
           <textarea
             value={content}
             onChange={(e) => onUpdate('content', e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800"
+            className="w-full rounded-xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface-soft)] px-3 py-2 text-sm text-[color:var(--ncf-text)]"
           />
         </label>
 
         <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Largeur (px)</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">Largeur (px)</span>
           <input
             type="number"
             min="80"
             value={props.width ?? ''}
             onChange={(e) => onUpdate('props.width', e.target.value ? Number(e.target.value) : null)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800"
+            className="w-full rounded-xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface-soft)] px-3 py-2 text-sm text-[color:var(--ncf-text)]"
             placeholder="auto"
           />
         </label>
 
         <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hauteur (px)</span>
+          <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">Hauteur (px)</span>
           <input
             type="number"
             min="40"
             value={props.height ?? ''}
             onChange={(e) => onUpdate('props.height', e.target.value ? Number(e.target.value) : null)}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800"
+            className="w-full rounded-xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface-soft)] px-3 py-2 text-sm text-[color:var(--ncf-text)]"
             placeholder="auto"
           />
         </label>
@@ -125,14 +125,14 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
         />
 
         <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">
             Classes Tailwind avancees
           </span>
           <input
             value={className}
             onChange={(e) => onUpdate('className', e.target.value)}
             placeholder="ex: shadow-lg border border-slate-200"
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800"
+            className="w-full rounded-xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface-soft)] px-3 py-2 text-sm text-[color:var(--ncf-text)]"
           />
         </label>
       </div>

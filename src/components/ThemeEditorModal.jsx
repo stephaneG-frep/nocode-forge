@@ -31,8 +31,8 @@ export default function ThemeEditorModal({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4">
-      <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 p-5">
           <h3 className="text-lg font-semibold text-slate-900">Editeur de theme</h3>
           <button
             onClick={onClose}
@@ -42,40 +42,42 @@ export default function ThemeEditorModal({
           </button>
         </div>
 
-        <label className="mb-4 block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nom du theme</span>
-          <input
-            value={draftName}
-            onChange={(e) => onNameChange(e.target.value)}
-            placeholder="Mon theme"
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800"
-          />
-        </label>
+        <div className="overflow-y-auto p-5">
+          <label className="mb-4 block space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nom du theme</span>
+            <input
+              value={draftName}
+              onChange={(e) => onNameChange(e.target.value)}
+              placeholder="Mon theme"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800"
+            />
+          </label>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {keys.map((key) => (
-            <label key={key} className="block rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {labels[key]}
-              </span>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={draftVars[key] || '#000000'}
-                  onChange={(e) => onVarChange(key, e.target.value)}
-                  className="h-10 w-12 cursor-pointer rounded border border-slate-300 bg-white"
-                />
-                <input
-                  value={draftVars[key] || ''}
-                  onChange={(e) => onVarChange(key, e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
-                />
-              </div>
-            </label>
-          ))}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {keys.map((key) => (
+              <label key={key} className="block rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {labels[key]}
+                </span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={draftVars[key] || '#000000'}
+                    onChange={(e) => onVarChange(key, e.target.value)}
+                    className="h-10 w-12 cursor-pointer rounded border border-slate-300 bg-white"
+                  />
+                  <input
+                    value={draftVars[key] || ''}
+                    onChange={(e) => onVarChange(key, e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
+                  />
+                </div>
+              </label>
+            ))}
+          </div>
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="flex justify-end border-t border-slate-200 bg-white p-5">
           <button
             onClick={onSave}
             className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
