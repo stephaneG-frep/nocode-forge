@@ -379,7 +379,7 @@ export default function BuilderCanvas({
                       {showBefore ? <div className={canvasLayout === 'row' ? 'absolute -top-2 left-0 right-0 h-1 rounded-full bg-brand-500' : 'mb-2 h-1 rounded-full bg-brand-500'} /> : null}
 
                       <div
-                        className={`${canvasLayout === 'row' ? 'w-full' : ''} ${draggedId === element.id ? 'opacity-60' : ''}`.trim()}
+                        className={`${canvasLayout === 'row' ? 'min-w-0 w-full' : 'min-w-0'} ${draggedId === element.id ? 'opacity-60' : ''}`.trim()}
                         onDragOver={(e) => {
                           if (previewMode) return;
                           e.preventDefault();

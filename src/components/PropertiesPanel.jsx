@@ -57,6 +57,14 @@ const contentHelp = {
   pricing: 'Ligne 1 = offre, ligne 2 = prix, ligne 3 = description, ligne 4 = avantages separes par |.',
   quote: 'Ligne 1 = citation, ligne 2 = auteur.',
   list: 'Une ligne par point de liste.',
+  select: 'Ligne 1 = texte affiche, puis une option par ligne.',
+  form: 'Titre, nom, email, message, bouton : une ligne chacun.',
+  faq: 'Question puis reponse, a repeter 3 fois.',
+  gallery: 'Une adresse image par ligne.',
+  team: 'Nom puis role, a repeter 3 fois.',
+  features: 'Titre puis description, a repeter 3 fois.',
+  cta: 'Ligne 1 = titre, ligne 2 = texte, ligne 3 = bouton.',
+  'contact-block': 'Titre, email, telephone, bouton : une ligne chacun.',
 };
 
 function SelectField({ label, value, options, onChange }) {
@@ -167,6 +175,22 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
           options={radiusOptions}
           onChange={(value) => onUpdate('props.radius', value)}
         />
+
+        <div className="rounded-2xl border border-[color:var(--ncf-surface-soft)] p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">Afficher sur</p>
+          <label className="mb-2 flex items-center gap-2 text-sm text-[color:var(--ncf-text)]">
+            <input type="checkbox" checked={props.visibleDesktop !== false} onChange={(e) => onUpdate('props.visibleDesktop', e.target.checked)} />
+            Ordinateur
+          </label>
+          <label className="mb-2 flex items-center gap-2 text-sm text-[color:var(--ncf-text)]">
+            <input type="checkbox" checked={props.visibleTablet !== false} onChange={(e) => onUpdate('props.visibleTablet', e.target.checked)} />
+            Tablette
+          </label>
+          <label className="flex items-center gap-2 text-sm text-[color:var(--ncf-text)]">
+            <input type="checkbox" checked={props.visibleMobile !== false} onChange={(e) => onUpdate('props.visibleMobile', e.target.checked)} />
+            Telephone
+          </label>
+        </div>
 
         <details className="rounded-2xl border border-[color:var(--ncf-surface-soft)] p-3">
           <summary className="cursor-pointer text-sm font-semibold text-[color:var(--ncf-text)]">Avance</summary>

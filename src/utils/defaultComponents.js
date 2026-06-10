@@ -10,6 +10,9 @@ const baseProps = {
   y: null,
   locked: false,
   groupId: null,
+  visibleDesktop: true,
+  visibleTablet: true,
+  visibleMobile: true,
 };
 
 export const componentLibrary = [
@@ -25,6 +28,18 @@ export const componentLibrary = [
   { type: 'quote', label: 'Citation', description: 'Phrase mise en avant', category: 'Texte' },
   { type: 'list', label: 'Liste', description: 'Points cles', category: 'Texte' },
   { type: 'input', label: 'Champ', description: 'Saisie texte', category: 'Formulaire' },
+  { type: 'email', label: 'Email', description: 'Champ email', category: 'Formulaire' },
+  { type: 'phone', label: 'Telephone', description: 'Champ telephone', category: 'Formulaire' },
+  { type: 'textarea', label: 'Grand champ', description: 'Message long', category: 'Formulaire' },
+  { type: 'checkbox', label: 'Case a cocher', description: 'Choix oui/non', category: 'Formulaire' },
+  { type: 'select', label: 'Liste choix', description: 'Menu deroulant', category: 'Formulaire' },
+  { type: 'form', label: 'Formulaire complet', description: 'Contact pret', category: 'Formulaire' },
+  { type: 'faq', label: 'FAQ', description: 'Questions reponses', category: 'Sections' },
+  { type: 'gallery', label: 'Galerie', description: '3 images', category: 'Sections' },
+  { type: 'team', label: 'Equipe', description: '3 profils', category: 'Sections' },
+  { type: 'features', label: 'Avantages', description: '3 cartes utiles', category: 'Sections' },
+  { type: 'cta', label: 'Appel a action', description: 'Bloc final', category: 'Sections' },
+  { type: 'contact-block', label: 'Contact complet', description: 'Infos + bouton', category: 'Sections' },
   { type: 'divider', label: 'Separateur', description: 'Ligne de coupe', category: 'Mise en page' },
   { type: 'spacer', label: 'Espace', description: 'Respiration vide', category: 'Mise en page' },
   { type: 'section', label: 'Section', description: 'Conteneur simple', category: 'Mise en page' },
@@ -170,13 +185,37 @@ export const createDefaultElement = (type) => {
     case 'input':
       return {
         ...shared,
-        content: 'Type here...',
+        content: 'Nom',
         props: {
           ...baseProps,
           backgroundColor: 'bg-[color:var(--ncf-surface)]',
           padding: 'px-4 py-3',
         },
       };
+    case 'email':
+      return { ...shared, content: 'Email', props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'px-4 py-3' } };
+    case 'phone':
+      return { ...shared, content: 'Telephone', props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'px-4 py-3' } };
+    case 'textarea':
+      return { ...shared, content: 'Votre message', props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'px-4 py-3', height: 120 } };
+    case 'checkbox':
+      return { ...shared, content: 'J accepte les conditions', props: { ...baseProps, backgroundColor: '', padding: 'p-2' } };
+    case 'select':
+      return { ...shared, content: 'Choisir une option\nOption 1\nOption 2\nOption 3', props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'px-4 py-3' } };
+    case 'form':
+      return { ...shared, content: 'Contactez-nous\nNom\nEmail\nMessage\nEnvoyer', props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'p-6', radius: 'rounded-3xl' } };
+    case 'faq':
+      return { ...shared, content: 'Question frequente ?\nReponse claire et courte.\nCombien ca coute ?\nTu peux modifier le prix dans le bloc.\nPuis-je exporter ?\nOui, en web et mobile.', props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'p-6', radius: 'rounded-2xl' } };
+    case 'gallery':
+      return { ...shared, content: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=700&q=80\nhttps://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=700&q=80\nhttps://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=700&q=80', props: { ...baseProps, backgroundColor: '', padding: 'p-0', radius: 'rounded-2xl' } };
+    case 'team':
+      return { ...shared, content: 'Lea\nDesign\nNabil\nDev\nSofia\nProduit', props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'p-6', radius: 'rounded-2xl' } };
+    case 'features':
+      return { ...shared, content: 'Simple\nConstruis sans jargon.\nRapide\nTeste tes idees vite.\nExportable\nRecupere ton code.', props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'p-6', radius: 'rounded-2xl' } };
+    case 'cta':
+      return { ...shared, content: 'Pret a lancer ton projet ?\nAjoute tes blocs, ajuste le style, puis exporte.\nCommencer maintenant', props: { ...baseProps, textColor: 'text-white', backgroundColor: 'bg-[color:var(--ncf-accent-strong)]', padding: 'p-8', radius: 'rounded-3xl' } };
+    case 'contact-block':
+      return { ...shared, content: 'Contact\ncontact@exemple.fr\n06 00 00 00 00\nEnvoyer un message', props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'p-6', radius: 'rounded-2xl' } };
     case 'section':
       return {
         ...shared,

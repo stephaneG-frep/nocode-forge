@@ -9,6 +9,7 @@ import CodeExporter from './components/CodeExporter';
 import ToastContainer from './components/ToastContainer';
 import ThemeEditorModal from './components/ThemeEditorModal';
 import HelpCenter from './components/HelpCenter';
+import LayersPanel from './components/LayersPanel';
 import { createDefaultElement, createTemplateElements } from './utils/defaultComponents';
 import { generateProjectFiles } from './utils/generateCode';
 import { defaultThemeId, getThemeById, themes } from './utils/themes';
@@ -18,6 +19,8 @@ const THEME_STORAGE_KEY = 'nocode-forge-theme';
 const CUSTOM_THEMES_STORAGE_KEY = 'nocode-forge-custom-themes';
 const VIEWPORT_STORAGE_KEY = 'nocode-forge-viewport';
 const CANVAS_LAYOUT_STORAGE_KEY = 'nocode-forge-canvas-layout';
+const PROJECTS_STORAGE_KEY = 'nocode-forge-projects';
+const ACTIVE_PROJECT_STORAGE_KEY = 'nocode-forge-active-project';
 const HISTORY_LIMIT = 80;
 const COALESCE_WINDOW_MS = 450;
 
@@ -47,7 +50,14 @@ const duplicateWithNewId = (el) => ({
 const slugify = (text) => text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 export default function App() {
-  const [elements, setElements] = useState(() => readJson(STORAGE_KEY, []));
+  const [projects, setProjects] = useState(() => {
+    const saved = readJson(PROJECTS_STORAGE_KEY, null);
+    if (Array.isArray(saved) && saved.length > 0) return saved;
+    return [{ id: 'default', name: 'Mon projet', elements: readJson(STORAGE_KEY, []) }];
+  });
+  const [activeProjectId, setActiveProjectId] = useState(() => localStorage.getItem(ACTIVE_PROJECT_STORAGE_KEY) || 'default');
+  const activeProject = useMemo(() => projects.find((project) => project.id === activeProjectId) || projects[0], [projects, activeProjectId]);
+  const [elements, setElements] = useState(() => activeProject?.elements || []);
   const [customThemes, setCustomThemes] = useState(() => readJson(CUSTOM_THEMES_STORAGE_KEY, []));
   const [themeId, setThemeId] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || defaultThemeId);
   const [viewport, setViewport] = useState(() => localStorage.getItem(VIEWPORT_STORAGE_KEY) || 'desktop');
@@ -76,7 +86,23 @@ export default function App() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 2000);
   };
 
-  useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(elements)), [elements]);
+  useEffect(() => {
+    if (!activeProject) return;
+    setElements(activeProject.elements || []);
+    setSelectedIds([]);
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(elements));
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === activeProjectId ? { ...project, elements } : project
+      )
+    );
+  }, [elements, activeProjectId]);
+
+  useEffect(() => localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects)), [projects]);
+  useEffect(() => localStorage.setItem(ACTIVE_PROJECT_STORAGE_KEY, activeProjectId), [activeProjectId]);
   useEffect(() => localStorage.setItem(THEME_STORAGE_KEY, themeId), [themeId]);
   useEffect(() => localStorage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(customThemes)), [customThemes]);
   useEffect(() => localStorage.setItem(VIEWPORT_STORAGE_KEY, viewport), [viewport]);
@@ -181,6 +207,70 @@ export default function App() {
     applyChange(() => []);
     setSelectedIds([]);
     pushToast('Zone videe', 'success');
+  };
+
+  const newProject = () => {
+    const name = window.prompt('Nom du nouveau projet ?', `Projet ${projects.length + 1}`);
+    if (!name) return;
+    const id = `project-${Date.now().toString(36)}`;
+    const project = { id, name: name.trim(), elements: [] };
+    setProjects((prev) => [...prev, project]);
+    setActiveProjectId(id);
+    setElements([]);
+    pushToast('Nouveau projet cree', 'success');
+  };
+
+  const saveProjectAs = () => {
+    const name = window.prompt('Sauver sous quel nom ?', `${activeProject?.name || 'Projet'} copie`);
+    if (!name) return;
+    const id = `project-${Date.now().toString(36)}`;
+    const project = { id, name: name.trim(), elements };
+    setProjects((prev) => [...prev, project]);
+    setActiveProjectId(id);
+    pushToast('Projet copie', 'success');
+  };
+
+  const exportJson = () => {
+    const payload = {
+      name: activeProject?.name || 'NoCode Forge',
+      elements,
+      themeId,
+      viewport,
+      canvasLayout,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${slugify(payload.name) || 'nocode-forge'}-projet.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    pushToast('JSON exporte', 'success');
+  };
+
+  const importJson = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const parsed = JSON.parse(await file.text());
+        const importedElements = Array.isArray(parsed) ? parsed : parsed.elements;
+        if (!Array.isArray(importedElements)) throw new Error('Invalid project');
+        const id = `project-${Date.now().toString(36)}`;
+        const project = { id, name: parsed.name || file.name.replace(/\.json$/i, ''), elements: importedElements };
+        setProjects((prev) => [...prev, project]);
+        setActiveProjectId(id);
+        setElements(importedElements);
+        pushToast('Projet importe', 'success');
+      } catch {
+        pushToast('Import impossible', 'error');
+      }
+    };
+    input.click();
   };
 
   const reorderElements = (fromId, toId, placement = 'before', dragSelectionIds = []) => {
@@ -543,12 +633,19 @@ export default function App() {
         onPreview={() => setPreviewOpen(true)}
         onExport={() => setExportOpen(true)}
         onClear={clearCanvas}
+        onNewProject={newProject}
+        onSaveProjectAs={saveProjectAs}
+        onExportJson={exportJson}
+        onImportJson={importJson}
         onOpenThemeEditor={openThemeEditor}
         onDeleteTheme={deleteCurrentCustomTheme}
         onOpenHelp={() => setHelpOpen(true)}
         previewMode={previewOpen}
         themeId={themeId}
         themes={allThemes}
+        projects={projects}
+        activeProjectId={activeProject?.id || activeProjectId}
+        onChangeProject={setActiveProjectId}
         onChangeTheme={(id) => {
           setThemeId(id);
           const theme = allThemes.find((item) => item.id === id);
@@ -588,7 +685,10 @@ export default function App() {
           previewMode={false}
         />
 
-        <PropertiesPanel selectedElement={selectedElement} onUpdate={updateSelected} />
+        <div className="space-y-4">
+          <LayersPanel elements={elements} selectedIds={selectedIds} onSelect={onSelectElement} />
+          <PropertiesPanel selectedElement={selectedElement} onUpdate={updateSelected} />
+        </div>
       </main>
 
       <button onClick={() => setHelpOpen(true)} className="fixed bottom-4 right-4 z-40 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl hover:bg-slate-700">? Aide</button>
