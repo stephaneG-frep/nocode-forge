@@ -13,10 +13,11 @@ export default function HelpCenter({ open, onClose }) {
           <p>1. Ajoute des composants avec Ajouter.</p>
           <p>2. Clique pour sélectionner un composant, Shift+clic pour multi-sélection.</p>
           <p>3. Modifie les propriétés dans le panneau de droite (appliquées à toute la sélection).</p>
-          <p>4. En mode Libre, utilise Deplacer pour mettre les elements ou tu veux.</p>
-          <p>5. Utilise la poignée pour redimensionner.</p>
-          <p>6. Themes permet de creer ou modifier les couleurs.</p>
-          <p>7. Exporter permet de recuperer le code Web ou Mobile.</p>
+          <p>4. En mode Libre, clique et glisse directement un element pour le deplacer.</p>
+          <p>5. Utilise Attraper si tu preferes une poignee visible.</p>
+          <p>6. Utilise la poignée dans le coin pour redimensionner.</p>
+          <p>7. Themes permet de creer ou modifier les couleurs.</p>
+          <p>8. Exporter permet de recuperer le code Web ou Mobile.</p>
         </div>
 
         <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -26,6 +27,8 @@ export default function HelpCenter({ open, onClose }) {
             <p><kbd>Ctrl/Cmd + Shift + Z</kbd> Retablir</p>
             <p><kbd>Ctrl/Cmd + D</kbd> Dupliquer sélection</p>
             <p><kbd>Suppr / Retour</kbd> Supprimer selection</p>
+            <p><kbd>Fleches</kbd> Deplacer en mode Libre</p>
+            <p><kbd>Shift + fleches</kbd> Deplacer plus vite</p>
             <p><kbd>?</kbd> Ouvrir ce mode d'emploi</p>
           </div>
         </div>

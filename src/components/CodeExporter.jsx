@@ -20,7 +20,10 @@ export default function CodeExporter({
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 p-4">
       <div className="h-[85vh] w-full max-w-6xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
-          <h3 className="text-lg font-semibold text-slate-900">Exporter</h3>
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">Telecharger mon projet</h3>
+            <p className="text-sm text-slate-500">Choisis le format, puis telecharge le ZIP complet.</p>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setTarget('web')}
@@ -28,7 +31,7 @@ export default function CodeExporter({
                 target === 'web' ? 'bg-slate-900 text-white' : 'border border-slate-300 text-slate-700'
               }`}
             >
-              Web
+              Site web
             </button>
             <button
               onClick={() => setTarget('mobile')}
@@ -38,7 +41,7 @@ export default function CodeExporter({
                   : 'border border-slate-300 text-slate-700'
               }`}
             >
-              Mobile
+              App mobile
             </button>
             <button
               onClick={() => onCopy(target, safeActiveFile)}
@@ -48,9 +51,9 @@ export default function CodeExporter({
             </button>
             <button
               onClick={() => onDownloadZip(target)}
-              className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
             >
-              Telecharger ZIP
+              Telecharger le projet
             </button>
             <button
               onClick={onClose}
@@ -63,6 +66,10 @@ export default function CodeExporter({
 
         <div className="grid h-[calc(85vh-72px)] grid-cols-1 md:grid-cols-[280px_1fr]">
           <aside className="border-r border-slate-200 bg-slate-50 p-2">
+            <div className="mb-3 rounded-2xl bg-white p-3 text-sm text-slate-600 shadow-sm">
+              <p className="font-semibold text-slate-900">{target === 'web' ? 'Site web React' : 'Application mobile Expo'}</p>
+              <p className="mt-1">{target === 'web' ? 'A lancer avec npm install puis npm run dev.' : 'A lancer avec npm install puis npm run start.'}</p>
+            </div>
             {fileNames.map((file) => (
               <button
                 key={file}

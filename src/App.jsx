@@ -9,7 +9,7 @@ import CodeExporter from './components/CodeExporter';
 import ToastContainer from './components/ToastContainer';
 import ThemeEditorModal from './components/ThemeEditorModal';
 import HelpCenter from './components/HelpCenter';
-import { createDefaultElement } from './utils/defaultComponents';
+import { createDefaultElement, createTemplateElements } from './utils/defaultComponents';
 import { generateProjectFiles } from './utils/generateCode';
 import { defaultThemeId, getThemeById, themes } from './utils/themes';
 
@@ -110,7 +110,15 @@ export default function App() {
     const newElement = createDefaultElement(type);
     applyChange((prev) => [...prev, newElement]);
     setSelectedIds([newElement.id]);
-    pushToast(`${type} added`, 'success');
+    pushToast('Element ajoute', 'success');
+  };
+
+  const addTemplate = (templateId) => {
+    const newElements = createTemplateElements(templateId);
+    if (newElements.length === 0) return;
+    applyChange((prev) => [...prev, ...newElements]);
+    setSelectedIds(newElements.length ? [newElements[0].id] : []);
+    pushToast('Modele ajoute', 'success');
   };
 
   const onSelectElement = (id, additive = false) => {
@@ -284,6 +292,111 @@ export default function App() {
     pushToast('Espacement applique', 'success');
   };
 
+  const selectedFreeElements = () =>
+    elements
+      .filter((el) => selectedIds.includes(el.id))
+      .filter((el) => !el.props?.locked);
+
+  const alignSelectedFree = (mode) => {
+    if (canvasLayout !== 'free' || selectedIds.length === 0) return;
+    const selected = selectedFreeElements();
+    if (selected.length === 0) return pushToast('Aucun element deplacable', 'info');
+
+    const positions = selected.map((el) => ({
+      id: el.id,
+      x: typeof el.props?.x === 'number' ? el.props.x : 0,
+      y: typeof el.props?.y === 'number' ? el.props.y : 0,
+      width: typeof el.props?.width === 'number' ? el.props.width : 120,
+      height: typeof el.props?.height === 'number' ? el.props.height : 56,
+    }));
+
+    const minX = Math.min(...positions.map((item) => item.x));
+    const maxRight = Math.max(...positions.map((item) => item.x + item.width));
+    const centerX = Math.round((minX + maxRight) / 2);
+    const minY = Math.min(...positions.map((item) => item.y));
+    const maxBottom = Math.max(...positions.map((item) => item.y + item.height));
+    const centerY = Math.round((minY + maxBottom) / 2);
+
+    applyChange((prev) =>
+      prev.map((el) => {
+        const item = positions.find((pos) => pos.id === el.id);
+        if (!item) return el;
+        const nextProps = { ...el.props };
+        if (mode === 'left') nextProps.x = minX;
+        if (mode === 'center') nextProps.x = Math.max(0, Math.round(centerX - item.width / 2));
+        if (mode === 'right') nextProps.x = Math.max(0, maxRight - item.width);
+        if (mode === 'top') nextProps.y = minY;
+        if (mode === 'middle') nextProps.y = Math.max(0, Math.round(centerY - item.height / 2));
+        if (mode === 'bottom') nextProps.y = Math.max(0, maxBottom - item.height);
+        return { ...el, props: nextProps };
+      })
+    );
+    pushToast('Alignement applique', 'success');
+  };
+
+  const matchSelectedSize = (dimension) => {
+    if (canvasLayout !== 'free' || selectedIds.length < 2) return;
+    const selected = selectedFreeElements();
+    if (selected.length < 2) return pushToast('Selectionne au moins 2 elements', 'info');
+    const reference = selected[0];
+    const fallback = dimension === 'width' ? 160 : 56;
+    const value = typeof reference.props?.[dimension] === 'number' ? reference.props[dimension] : fallback;
+    applyChange((prev) =>
+      prev.map((el) =>
+        selectedIds.includes(el.id) && !el.props?.locked
+          ? { ...el, props: { ...el.props, [dimension]: value } }
+          : el
+      )
+    );
+    pushToast(dimension === 'width' ? 'Meme largeur appliquee' : 'Meme hauteur appliquee', 'success');
+  };
+
+  const changeSelectedLayer = (direction) => {
+    if (selectedIds.length !== 1) return;
+    const selectedId = selectedIds[0];
+    applyChange((prev) => {
+      const index = prev.findIndex((el) => el.id === selectedId);
+      if (index < 0) return prev;
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      if (direction === 'front') next.push(item);
+      if (direction === 'back') next.unshift(item);
+      return next;
+    });
+    pushToast(direction === 'front' ? 'Mis devant' : 'Mis derriere', 'success');
+  };
+
+  const nudgeSelectedFree = (deltaX, deltaY) => {
+    if (canvasLayout !== 'free' || selectedIds.length === 0) return;
+
+    const selectedSet = new Set(selectedIds);
+    const groupIds = new Set(
+      elements
+        .filter((el) => selectedSet.has(el.id))
+        .map((el) => el.props?.groupId)
+        .filter(Boolean)
+    );
+
+    applyChange(
+      (prev) =>
+        prev.map((el) => {
+          const shouldMove = selectedSet.has(el.id) || (el.props?.groupId && groupIds.has(el.props.groupId));
+          if (!shouldMove || el.props?.locked) return el;
+          const currentX = typeof el.props?.x === 'number' ? el.props.x : 0;
+          const currentY = typeof el.props?.y === 'number' ? el.props.y : 0;
+          return {
+            ...el,
+            props: {
+              ...el.props,
+              x: Math.max(0, currentX + deltaX),
+              y: Math.max(0, currentY + deltaY),
+            },
+          };
+        }),
+      { coalesceKey: 'keyboard-move' }
+    );
+  };
+
   const applyFreeOrder = () => {
     applyChange((prev) =>
       [...prev].sort((a, b) => {
@@ -375,6 +488,15 @@ export default function App() {
 
       if (key === '?') { event.preventDefault(); setHelpOpen(true); return; }
       if (key === 'delete' || key === 'backspace') { event.preventDefault(); deleteSelected(false); return; }
+      if (canvasLayout === 'free' && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key) && selectedIds.length > 0) {
+        event.preventDefault();
+        const step = event.shiftKey ? 16 : 1;
+        if (key === 'arrowup') nudgeSelectedFree(0, -step);
+        if (key === 'arrowdown') nudgeSelectedFree(0, step);
+        if (key === 'arrowleft') nudgeSelectedFree(-step, 0);
+        if (key === 'arrowright') nudgeSelectedFree(step, 0);
+        return;
+      }
       if (!cmd) return;
       if (key === 'd') { event.preventDefault(); duplicateSelected(); return; }
       if (key === 'z' && event.shiftKey) { event.preventDefault(); redo(); return; }
@@ -383,7 +505,7 @@ export default function App() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedIds, history, future, elements]);
+  }, [selectedIds, history, future, elements, canvasLayout]);
 
   const projectFilesByTarget = useMemo(() => generateProjectFiles(elements, activeTheme), [elements, activeTheme]);
 
@@ -435,7 +557,7 @@ export default function App() {
       />
 
       <main className="mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-4 p-4 md:p-6 xl:grid-cols-[280px_1fr_320px]">
-        <ComponentLibrary onAdd={addElement} />
+        <ComponentLibrary onAdd={addElement} onAddTemplate={addTemplate} />
 
         <BuilderCanvas
           elements={elements}
@@ -456,6 +578,9 @@ export default function App() {
           onMoveSelectedDown={() => moveSelectedBy(1)}
           onInlineEdit={updateElementById}
           onDistributeSpacing={distributeSpacing}
+          onAlignSelected={alignSelectedFree}
+          onMatchSize={matchSelectedSize}
+          onLayerChange={changeSelectedLayer}
           onGroupSelected={groupSelected}
           onUngroupSelected={ungroupSelected}
           onToggleLockSelected={toggleLockSelected}

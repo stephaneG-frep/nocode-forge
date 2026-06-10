@@ -52,14 +52,41 @@ export function RenderElement({ item }) {
 
   switch (item.type) {
     case 'text': return <p style={boxStyle} className={className}>{content}</p>;
+    case 'hero': {
+      const [title, subtitle] = content.split('\\n');
+      return <section style={boxStyle} className={className}><p className=\"mb-3 inline-flex rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-[color:var(--ncf-accent-strong)]\">Pret a publier</p><h1 className=\"max-w-3xl text-4xl font-black tracking-tight text-[color:var(--ncf-text)] md:text-5xl\">{title || 'Grand titre'}</h1><p className=\"mt-4 max-w-2xl text-base leading-7 text-[color:var(--ncf-muted)] md:text-lg\">{subtitle || 'Sous-titre de presentation'}</p></section>;
+    }
     case 'button': return <button style={boxStyle} className={className}>{content}</button>;
+    case 'badge': return <span style={boxStyle} className={className}>{content}</span>;
     case 'image': return <img style={boxStyle} src={content} alt={item.type} className={className} />;
     case 'card': {
       const [title, description] = content.split('\\n');
       return <div style={boxStyle} className={className + ' shadow-sm'}><h3 className=\"text-lg font-semibold\">{title || 'Card title'}</h3><p className=\"mt-2 text-slate-600\">{description || 'Card description'}</p></div>;
     }
+    case 'stats': {
+      const lines = content.split('\\n').filter(Boolean);
+      const stats = [0, 2, 4].map((start) => ({ value: lines[start] || '0', label: lines[start + 1] || 'Description' }));
+      return <div style={boxStyle} className={className}><div className=\"grid gap-4 sm:grid-cols-3\">{stats.map((stat, index) => <div key={index} className=\"rounded-2xl bg-[color:var(--ncf-surface-soft)] p-4 text-center\"><p className=\"text-3xl font-black text-[color:var(--ncf-accent-strong)]\">{stat.value}</p><p className=\"mt-1 text-sm text-[color:var(--ncf-muted)]\">{stat.label}</p></div>)}</div></div>;
+    }
+    case 'testimonial': {
+      const [quote, name, role] = content.split('\\n');
+      return <figure style={boxStyle} className={className}><p className=\"text-lg font-medium leading-8 text-[color:var(--ncf-text)]\">&quot;{quote || 'Avis client'}&quot;</p><figcaption className=\"mt-5 flex items-center gap-3\"><div className=\"grid h-11 w-11 place-items-center rounded-full bg-[color:var(--ncf-accent)] font-bold text-white\">{(name || 'A').slice(0, 1)}</div><div><p className=\"font-semibold text-[color:var(--ncf-text)]\">{name || 'Nom du client'}</p><p className=\"text-sm text-[color:var(--ncf-muted)]\">{role || 'Role'}</p></div></figcaption></figure>;
+    }
+    case 'pricing': {
+      const [name, price, description, features = ''] = content.split('\\n');
+      return <div style={boxStyle} className={className + ' border border-[color:var(--ncf-surface-soft)] shadow-sm'}><p className=\"text-sm font-semibold uppercase tracking-wide text-[color:var(--ncf-accent-strong)]\">{name || 'Offre'}</p><p className=\"mt-3 text-4xl font-black text-[color:var(--ncf-text)]\">{price || 'Prix'}</p><p className=\"mt-2 text-sm text-[color:var(--ncf-muted)]\">{description || 'Description'}</p><ul className=\"mt-5 space-y-2 text-sm text-[color:var(--ncf-text)]\">{features.split('|').filter(Boolean).map((feature) => <li key={feature}>+ {feature}</li>)}</ul></div>;
+    }
+    case 'quote': {
+      const [quote, author] = content.split('\\n');
+      return <blockquote style={boxStyle} className={className}><p className=\"leading-8\">&quot;{quote || 'Citation'}&quot;</p><footer className=\"mt-3 text-sm font-semibold text-[color:var(--ncf-muted)]\">{author || 'Auteur'}</footer></blockquote>;
+    }
+    case 'list':
+      return <ul style={boxStyle} className={className + ' space-y-2'}>{content.split('\\n').filter(Boolean).map((line) => <li key={line} className=\"flex gap-2\"><span className=\"font-bold text-[color:var(--ncf-accent)]\">+</span><span>{line}</span></li>)}</ul>;
     case 'input': return <input style={boxStyle} placeholder={content} className={className + ' border border-slate-300'} readOnly />;
     case 'section': return <section style={boxStyle} className={className}><h2 className=\"text-2xl font-bold\">{content}</h2></section>;
+    case 'divider':
+    case 'spacer':
+      return <div style={boxStyle} className={className} aria-hidden=\"true\" />;
     case 'navbar': return <nav style={boxStyle} className={className}>{content}</nav>;
     case 'footer': return <footer style={boxStyle} className={className}>{content}</footer>;
     default: return <div style={boxStyle} className={className}>{content}</div>;
@@ -127,18 +154,46 @@ export function RenderElement({ item }) {
   switch (item.type) {
     case 'text':
       return <Text style={[itemStyle, textStyle]}>{content}</Text>;
+    case 'hero': {
+      const [title, subtitle] = content.split('\\n');
+      return <View style={itemStyle}><Text style={[textStyle, { fontWeight: '900', fontSize: 34 }]}>{title || 'Grand titre'}</Text><Text style={[textStyle, { marginTop: 12, color: theme.muted, lineHeight: 24 }]}>{subtitle || 'Sous-titre de presentation'}</Text></View>;
+    }
     case 'button':
       return <Pressable style={itemStyle}><Text style={[textStyle, { fontWeight: '600' }]}>{content}</Text></Pressable>;
+    case 'badge':
+      return <Text style={[itemStyle, textStyle, { alignSelf: 'flex-start', fontWeight: '700' }]}>{content}</Text>;
     case 'image':
       return <Image source={{ uri: content }} style={[itemStyle, { minHeight: 180 }]} resizeMode=\"cover\" />;
     case 'card': {
       const [title, description] = content.split('\\n');
       return <View style={[itemStyle, { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 }]}><Text style={[textStyle, { fontWeight: '700', fontSize: 18 }]}>{title || 'Card title'}</Text><Text style={[textStyle, { marginTop: 8, color: theme.muted }]}>{description || 'Card description'}</Text></View>;
     }
+    case 'stats': {
+      const lines = content.split('\\n').filter(Boolean);
+      const stats = [0, 2, 4].map((start) => ({ value: lines[start] || '0', label: lines[start + 1] || 'Description' }));
+      return <View style={itemStyle}>{stats.map((stat, index) => <View key={index} style={{ paddingVertical: 8 }}><Text style={[textStyle, { fontWeight: '900', fontSize: 28, color: theme.accentStrong }]}>{stat.value}</Text><Text style={[textStyle, { color: theme.muted }]}>{stat.label}</Text></View>)}</View>;
+    }
+    case 'testimonial': {
+      const [quote, name, role] = content.split('\\n');
+      return <View style={itemStyle}><Text style={[textStyle, { fontSize: 18, lineHeight: 28 }]}>&quot;{quote || 'Avis client'}&quot;</Text><Text style={[textStyle, { marginTop: 16, fontWeight: '700' }]}>{name || 'Nom du client'}</Text><Text style={[textStyle, { color: theme.muted }]}>{role || 'Role'}</Text></View>;
+    }
+    case 'pricing': {
+      const [name, price, description, features = ''] = content.split('\\n');
+      return <View style={itemStyle}><Text style={[textStyle, { fontWeight: '800', color: theme.accentStrong }]}>{name || 'Offre'}</Text><Text style={[textStyle, { marginTop: 10, fontWeight: '900', fontSize: 30 }]}>{price || 'Prix'}</Text><Text style={[textStyle, { marginTop: 8, color: theme.muted }]}>{description || 'Description'}</Text>{features.split('|').filter(Boolean).map((feature) => <Text key={feature} style={[textStyle, { marginTop: 8 }]}>+ {feature}</Text>)}</View>;
+    }
+    case 'quote': {
+      const [quote, author] = content.split('\\n');
+      return <View style={itemStyle}><Text style={[textStyle, { fontSize: 18, lineHeight: 28 }]}>&quot;{quote || 'Citation'}&quot;</Text><Text style={[textStyle, { marginTop: 10, color: theme.muted, fontWeight: '700' }]}>{author || 'Auteur'}</Text></View>;
+    }
+    case 'list':
+      return <View style={itemStyle}>{content.split('\\n').filter(Boolean).map((line) => <Text key={line} style={[textStyle, { marginVertical: 4 }]}>+ {line}</Text>)}</View>;
     case 'input':
       return <TextInput editable={false} placeholder={content} style={[itemStyle, textStyle, { borderWidth: 1, borderColor: '#cbd5e1' }]} />;
     case 'section':
       return <View style={itemStyle}><Text style={[textStyle, { fontWeight: '700', fontSize: 24 }]}>{content}</Text></View>;
+    case 'divider':
+    case 'spacer':
+      return <View style={itemStyle} />;
     case 'navbar':
     case 'footer':
       return <Text style={[itemStyle, textStyle]}>{content}</Text>;
