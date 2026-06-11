@@ -68,7 +68,7 @@ export default function CodeExporter({
           <aside className="border-r border-slate-200 bg-slate-50 p-2">
             <div className="mb-3 rounded-2xl bg-white p-3 text-sm text-slate-600 shadow-sm">
               <p className="font-semibold text-slate-900">{target === 'web' ? 'Site web React' : 'Application mobile Expo'}</p>
-              <p className="mt-1">{target === 'web' ? 'A lancer avec npm install puis npm run dev.' : 'A lancer avec npm install puis npm run start.'}</p>
+              <p className="mt-1">{target === 'web' ? 'A lancer avec npm install puis npm run dev.' : 'Export Expo multi-ecrans avec navigation. A lancer avec npm install puis npm run start.'}</p>
             </div>
             {fileNames.map((file) => (
               <button

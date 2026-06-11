@@ -748,7 +748,7 @@ export default function App() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = target === 'mobile' ? 'nocode-forge-mobile-expo-export.zip' : 'nocode-forge-web-export.zip';
+      anchor.download = target === 'mobile' ? 'mon-application-mobile-expo.zip' : 'mon-application-web-react.zip';
       anchor.click();
       URL.revokeObjectURL(url);
       pushToast(`ZIP telecharge (${target})`, 'success');

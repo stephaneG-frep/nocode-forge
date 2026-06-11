@@ -174,7 +174,7 @@ const mobileFiles = (screensInput, theme) => {
 }
 `,
     'App.js': `import React, { useMemo, useState } from 'react';
-import { SafeAreaView, ScrollView, Text, Pressable, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text, Pressable, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { screens } from './src/data/screens';
 import { theme } from './src/theme';
@@ -185,20 +185,41 @@ export default function App() {
   const currentScreen = useMemo(() => screens.find((screen) => screen.id === screenId) || screens[0], [screenId]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.appBg }}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.appBg }]}>
       <StatusBar style="dark" />
-      <View style={{ flexDirection: 'row', gap: 8, padding: 12 }}>
-        {screens.map((screen) => <Pressable key={screen.id} onPress={() => setScreenId(screen.id)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: screen.id === currentScreen?.id ? theme.text : theme.surface }}><Text style={{ color: screen.id === currentScreen?.id ? '#fff' : theme.text, fontWeight: '700' }}>{screen.name}</Text></Pressable>)}
+      <View style={styles.phoneShell}>
+        <View style={styles.handle} />
+        <Text style={[styles.appTitle, { color: theme.text }]}>Mon application</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+          {screens.map((screen) => {
+            const active = screen.id === currentScreen?.id;
+            return (
+              <Pressable key={screen.id} onPress={() => setScreenId(screen.id)} style={[styles.tab, { backgroundColor: active ? theme.text : theme.surface }]}>
+                <Text style={{ color: active ? '#fff' : theme.text, fontWeight: '800' }}>{screen.name}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
       </View>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      <ScrollView contentContainerStyle={styles.content}>
         {(currentScreen?.elements || []).map((item) => <RenderElement key={item.id} item={item} onNavigate={setScreenId} />)}
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  phoneShell: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 10 },
+  handle: { alignSelf: 'center', width: 48, height: 5, borderRadius: 999, backgroundColor: '#94a3b8', marginBottom: 12 },
+  appTitle: { fontSize: 22, fontWeight: '900', marginBottom: 12 },
+  tabs: { gap: 8, paddingBottom: 2 },
+  tab: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
+  content: { padding: 16, gap: 12, paddingBottom: 40 },
+});
 `,
     'src/components/RenderElement.js': `import React from 'react';
-import { Image, Pressable, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { theme } from '../theme';
 import { getItemStyle, getTextStyle } from '../utils/styleParsers';
 
@@ -211,14 +232,93 @@ export function RenderElement({ item, onNavigate }) {
   const target = item.props?.targetScreen;
   const Box = target ? Pressable : View;
   const boxProps = target ? { onPress: () => onNavigate?.(target) } : {};
+  const cardStyle = [styles.card, itemStyle];
 
-  if (item.type === 'image') return <Image source={{ uri: content }} style={[itemStyle, { minHeight: 180 }]} resizeMode="cover" />;
-  if (['input', 'email', 'phone', 'textarea'].includes(item.type)) return <TextInput editable={false} placeholder={content} style={[itemStyle, textStyle, { borderWidth: 1, borderColor: '#cbd5e1' }]} />;
-  if (['button', 'appFab'].includes(item.type)) return <Pressable {...boxProps} style={itemStyle}><Text style={[textStyle, { fontWeight: '700', textAlign: 'center' }]}>{content}</Text></Pressable>;
+  if (item.type === 'image') return <Image source={{ uri: content }} style={[itemStyle, styles.image]} resizeMode="cover" />;
+  if (['input', 'email', 'phone', 'textarea'].includes(item.type)) return <TextInput editable={false} placeholder={content} style={[styles.input, itemStyle, textStyle]} />;
+  if (['button', 'appFab'].includes(item.type)) return <Pressable {...boxProps} style={[styles.button, itemStyle]}><Text style={[textStyle, styles.buttonText]}>{content}</Text></Pressable>;
 
   const [title, ...rest] = content.split('\\n');
-  return <Box {...boxProps} style={itemStyle}><Text style={[textStyle, { fontWeight: '800', fontSize: 18 }]}>{title}</Text>{rest.map((line) => <Text key={line} style={[textStyle, { marginTop: 6, color: theme.muted }]}>{line}</Text>)}</Box>;
+
+  if (item.type === 'appTopBar') {
+    const [hello, screenTitle] = content.split('\\n');
+    return <View style={[styles.topBar, itemStyle]}><View><Text style={styles.topBarSmall}>{hello}</Text><Text style={styles.topBarTitle}>{screenTitle}</Text></View><View style={styles.avatar}><Text style={styles.avatarText}>{(hello || 'A').slice(0, 1)}</Text></View></View>;
+  }
+
+  if (item.type === 'appBottomNav') {
+    const items = linesOf(content);
+    return <View style={[styles.bottomNav, itemStyle]}>{items.map((label, index) => <View key={label} style={[styles.navItem, index === 0 && { backgroundColor: theme.accent }]}><Text style={[styles.navText, index === 0 && { color: '#fff' }]}>{label}</Text></View>)}</View>;
+  }
+
+  if (item.type === 'productCard') {
+    const [name, price, status] = content.split('\\n');
+    return <Box {...boxProps} style={cardStyle}><View style={styles.productImage} /><Text style={[textStyle, styles.title]}>{name}</Text><View style={styles.row}><Text style={styles.price}>{price}</Text><Text style={styles.pill}>{status}</Text></View></Box>;
+  }
+
+  if (item.type === 'orderCard') {
+    const [order, status, meta] = content.split('\\n');
+    return <Box {...boxProps} style={cardStyle}><View style={styles.row}><Text style={[textStyle, styles.title]}>{order}</Text><Text style={styles.successPill}>{status}</Text></View><Text style={styles.muted}>{meta}</Text></Box>;
+  }
+
+  if (item.type === 'notificationCard') {
+    const [notifTitle, message, time] = content.split('\\n');
+    return <Box {...boxProps} style={[cardStyle, styles.notification]}><Text style={[textStyle, styles.title]}>{notifTitle}</Text><Text style={styles.muted}>{message}</Text><Text style={styles.accentText}>{time}</Text></Box>;
+  }
+
+  if (item.type === 'userProfile') {
+    const [name, role, email] = content.split('\\n');
+    return <View style={[cardStyle, styles.profile]}><View style={styles.bigAvatar}><Text style={styles.avatarText}>{(name || 'U').slice(0, 1)}</Text></View><View style={{ flex: 1 }}><Text style={[textStyle, styles.title]}>{name}</Text><Text style={styles.muted}>{role}</Text><Text style={styles.smallMuted}>{email}</Text></View></View>;
+  }
+
+  if (item.type === 'metricCard') {
+    const [label, value, trend] = content.split('\\n');
+    return <View style={cardStyle}><Text style={styles.muted}>{label}</Text><Text style={[textStyle, styles.metric]}>{value}</Text><Text style={styles.goodTrend}>{trend}</Text></View>;
+  }
+
+  if (item.type === 'appListItem') {
+    const [itemTitle, status, meta] = content.split('\\n');
+    return <Box {...boxProps} style={[cardStyle, styles.listItem]}><View style={styles.avatar}><Text style={styles.avatarText}>{(itemTitle || 'A').slice(0, 1)}</Text></View><View style={{ flex: 1 }}><Text style={[textStyle, styles.title]}>{itemTitle}</Text><Text style={styles.muted}>{status}</Text></View><Text style={styles.pill}>{meta}</Text></Box>;
+  }
+
+  return <Box {...boxProps} style={cardStyle}><Text style={[textStyle, styles.title]}>{title}</Text>{rest.map((line) => <Text key={line} style={styles.muted}>{line}</Text>)}</Box>;
 }
+
+const styles = StyleSheet.create({
+  card: {
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  title: { fontWeight: '900', fontSize: 18 },
+  muted: { marginTop: 6, color: theme.muted, lineHeight: 21 },
+  smallMuted: { marginTop: 4, color: theme.muted, fontSize: 12 },
+  image: { minHeight: 180, borderRadius: 24 },
+  input: { borderWidth: 1, borderColor: '#cbd5e1' },
+  button: { alignItems: 'center', justifyContent: 'center' },
+  buttonText: { fontWeight: '900', textAlign: 'center' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topBarSmall: { color: 'rgba(255,255,255,0.75)', fontWeight: '700' },
+  topBarTitle: { color: '#fff', fontWeight: '900', fontSize: 22, marginTop: 2 },
+  avatar: { width: 42, height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(15,23,42,0.12)' },
+  bigAvatar: { width: 64, height: 64, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.accent },
+  avatarText: { color: '#fff', fontWeight: '900' },
+  bottomNav: { flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
+  navItem: { flex: 1, alignItems: 'center', borderRadius: 18, paddingVertical: 10 },
+  navText: { color: theme.muted, fontWeight: '800', fontSize: 12 },
+  productImage: { height: 120, borderRadius: 22, backgroundColor: theme.surfaceSoft, marginBottom: 14 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  price: { color: theme.accentStrong, fontWeight: '900', fontSize: 17 },
+  pill: { overflow: 'hidden', borderRadius: 999, backgroundColor: theme.surfaceSoft, paddingHorizontal: 10, paddingVertical: 5, color: theme.muted, fontWeight: '800', fontSize: 12 },
+  successPill: { overflow: 'hidden', borderRadius: 999, backgroundColor: '#dcfce7', paddingHorizontal: 10, paddingVertical: 5, color: '#166534', fontWeight: '800', fontSize: 12 },
+  notification: { borderLeftWidth: 4, borderLeftColor: theme.accent },
+  accentText: { marginTop: 10, color: theme.accentStrong, fontWeight: '900', fontSize: 12 },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  metric: { marginTop: 6, fontWeight: '900', fontSize: 34 },
+  goodTrend: { marginTop: 6, color: '#059669', fontWeight: '900' },
+  listItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+});
 `,
     'src/utils/styleParsers.js': `const parseSpacing = (value) => {
   if (!value) return {};
@@ -303,7 +403,42 @@ export const getTextStyle = (item, theme) => {
   accentStrong: '${vars['--ncf-accent-strong'] || '#0b4c84'}',
 };
 `,
-    'README.md': `# Generated NoCode Forge Mobile Export (Expo)\n\nMulti-screen Expo app generated from NoCode Forge.\n\n## Run\n1. npm install\n2. npm run start\n3. Press i / a / w\n`,
+    'README.md': `# Application mobile exportee depuis NoCode Forge
+
+Ce dossier contient une application mobile Expo generee par NoCode Forge.
+
+## Lancer le projet
+
+1. Installer les dependances :
+
+\`\`\`bash
+npm install
+\`\`\`
+
+2. Demarrer Expo :
+
+\`\`\`bash
+npm run start
+\`\`\`
+
+3. Choisir la cible :
+
+- appuie sur \`a\` pour Android
+- appuie sur \`i\` pour iPhone / iOS
+- appuie sur \`w\` pour tester dans le navigateur
+
+## Structure
+
+- \`App.js\` : navigation entre les ecrans
+- \`src/data/screens.js\` : tous les ecrans exportes
+- \`src/components/RenderElement.js\` : rendu des composants
+- \`src/utils/styleParsers.js\` : conversion des styles
+- \`src/theme.js\` : couleurs du theme
+
+## Notes
+
+Les boutons et cartes qui ont une destination dans NoCode Forge changent d'ecran dans cette app Expo.
+`,
   };
 };
 
