@@ -1,5 +1,11 @@
 const labels = {
   text: 'Texte',
+  appTopBar: 'Barre d app',
+  appBottomNav: 'Navigation app',
+  appListItem: 'Ligne app',
+  appActionCard: 'Carte action',
+  appSearch: 'Recherche app',
+  appFab: 'Bouton flottant',
   hero: 'Grand titre',
   button: 'Bouton',
   badge: 'Badge',

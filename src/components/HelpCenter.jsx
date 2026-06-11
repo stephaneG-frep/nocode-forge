@@ -10,13 +10,13 @@ export default function HelpCenter({ open, onClose }) {
         </div>
 
         <div className="space-y-3 text-sm text-slate-700">
-          <p>1. Ajoute des composants avec Ajouter.</p>
+          <p>1. Commence avec un modele d'app ou ajoute des composants avec Ajouter.</p>
           <p>2. Clique pour sélectionner un composant, Shift+clic pour multi-sélection.</p>
           <p>3. Modifie les propriétés dans le panneau de droite (appliquées à toute la sélection).</p>
-          <p>4. En mode Libre, clique et glisse directement un element pour le deplacer.</p>
-          <p>5. Utilise Attraper si tu preferes une poignee visible.</p>
+          <p>4. Utilise la categorie Application pour creer une barre d'app, une navigation basse, des listes et des actions.</p>
+          <p>5. En mode Libre, clique et glisse directement un element pour le deplacer.</p>
           <p>6. Utilise la poignée dans le coin pour redimensionner.</p>
-          <p>7. Themes permet de creer ou modifier les couleurs.</p>
+          <p>7. Apercu permet de tester le rendu telephone, tablette ou ordinateur.</p>
           <p>8. Exporter permet de recuperer le code Web ou Mobile.</p>
         </div>
 

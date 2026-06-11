@@ -16,6 +16,12 @@ const baseProps = {
 };
 
 export const componentLibrary = [
+  { type: 'appTopBar', label: 'Barre d app', description: 'Haut d ecran mobile', category: 'Application' },
+  { type: 'appBottomNav', label: 'Navigation app', description: 'Menu bas mobile', category: 'Application' },
+  { type: 'appListItem', label: 'Ligne app', description: 'Item de liste', category: 'Application' },
+  { type: 'appActionCard', label: 'Carte action', description: 'Carte cliquable', category: 'Application' },
+  { type: 'appSearch', label: 'Recherche app', description: 'Barre de recherche', category: 'Application' },
+  { type: 'appFab', label: 'Bouton flottant', description: 'Action +', category: 'Application' },
   { type: 'text', label: 'Texte', description: 'Petit paragraphe', category: 'Texte' },
   { type: 'hero', label: 'Grand titre', description: 'Bloc d accueil', category: 'Marketing' },
   { type: 'button', label: 'Bouton', description: 'Action principale', category: 'Texte' },
@@ -49,6 +55,7 @@ export const componentLibrary = [
 
 export const templateLibrary = [
   { id: 'landing', label: 'Landing page', description: 'Accueil + preuves + prix' },
+  { id: 'dashboard-app', label: 'App tableau de bord', description: 'Ecran mobile complet' },
   { id: 'restaurant', label: 'Restaurant', description: 'Menu simple et appel a reserver' },
   { id: 'portfolio', label: 'Portfolio', description: 'Presentation + projets + contact' },
   { id: 'mobile-app', label: 'App mobile', description: 'Ecran marketing pour une app' },
@@ -68,6 +75,76 @@ export const createDefaultElement = (type) => {
   };
 
   switch (type) {
+    case 'appTopBar':
+      return {
+        ...shared,
+        content: 'Bonjour Alex\nTableau de bord',
+        props: {
+          ...baseProps,
+          backgroundColor: 'bg-[color:var(--ncf-accent-strong)]',
+          textColor: 'text-white',
+          padding: 'px-6 py-4',
+          radius: 'rounded-3xl',
+        },
+      };
+    case 'appBottomNav':
+      return {
+        ...shared,
+        content: 'Accueil\nStats\nMessages\nProfil',
+        props: {
+          ...baseProps,
+          backgroundColor: 'bg-[color:var(--ncf-surface)]',
+          padding: 'px-4 py-3',
+          radius: 'rounded-3xl',
+        },
+      };
+    case 'appListItem':
+      return {
+        ...shared,
+        content: 'Commande #2048\nEn attente\n12 min',
+        props: {
+          ...baseProps,
+          backgroundColor: 'bg-[color:var(--ncf-surface)]',
+          padding: 'px-4 py-3',
+          radius: 'rounded-2xl',
+        },
+      };
+    case 'appActionCard':
+      return {
+        ...shared,
+        content: 'Nouvelle reservation\nAjouter un client ou une commande rapidement.\nOuvrir',
+        props: {
+          ...baseProps,
+          backgroundColor: 'bg-[color:var(--ncf-surface-soft)]',
+          padding: 'p-5',
+          radius: 'rounded-3xl',
+        },
+      };
+    case 'appSearch':
+      return {
+        ...shared,
+        content: 'Rechercher dans l app',
+        props: {
+          ...baseProps,
+          backgroundColor: 'bg-[color:var(--ncf-surface)]',
+          padding: 'px-4 py-3',
+          radius: 'rounded-3xl',
+        },
+      };
+    case 'appFab':
+      return {
+        ...shared,
+        content: '+',
+        props: {
+          ...baseProps,
+          textColor: 'text-white',
+          backgroundColor: 'bg-[color:var(--ncf-accent)]',
+          padding: 'p-4',
+          radius: 'rounded-3xl',
+          width: 56,
+          height: 56,
+        },
+      };
     case 'text':
       return { ...shared, content: 'Texte modifiable' };
     case 'hero':
@@ -296,6 +373,16 @@ const withContent = (type, content, props = {}, className = '') => {
 
 export const createTemplateElements = (templateId) => {
   switch (templateId) {
+    case 'dashboard-app':
+      return [
+        withContent('appTopBar', 'Bonjour Alex\nTableau de bord'),
+        withContent('appSearch', 'Rechercher une action'),
+        withContent('stats', '24\nTaches\n8\nMessages\n92%\nObjectif'),
+        withContent('appActionCard', 'Nouvelle action\nCree une tache, un client ou une reservation.\nAjouter'),
+        withContent('appListItem', 'Commande #2048\nEn attente\n12 min'),
+        withContent('appListItem', 'Client Marie\nRendez-vous confirme\n15h30'),
+        withContent('appBottomNav', 'Accueil\nStats\nMessages\nProfil'),
+      ];
     case 'landing':
       return [
         withContent('navbar', 'NoCode Forge | Accueil | Avantages | Prix'),

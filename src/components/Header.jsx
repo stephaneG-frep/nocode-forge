@@ -20,7 +20,10 @@ export default function Header({
   return (
     <header className="sticky top-0 z-20 border-b border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface)]/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
-        <h1 className="text-lg font-semibold text-[color:var(--ncf-text)] md:text-xl">NoCode Forge</h1>
+        <div>
+          <h1 className="text-lg font-semibold text-[color:var(--ncf-text)] md:text-xl">NoCode Forge</h1>
+          <p className="text-xs font-medium text-[color:var(--ncf-muted)]">Fabrique d applications web et mobile</p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={activeProjectId}

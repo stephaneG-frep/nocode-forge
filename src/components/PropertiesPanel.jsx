@@ -50,6 +50,12 @@ const optionLabels = {
 };
 
 const contentHelp = {
+  appTopBar: 'Ligne 1 = salutation, ligne 2 = titre de l ecran.',
+  appBottomNav: 'Une entree de navigation par ligne.',
+  appListItem: 'Ligne 1 = titre, ligne 2 = statut, ligne 3 = info courte.',
+  appActionCard: 'Ligne 1 = titre, ligne 2 = texte, ligne 3 = bouton.',
+  appSearch: 'Texte affiche dans la recherche.',
+  appFab: 'Texte du bouton flottant, souvent +.',
   hero: 'Ligne 1 = grand titre, ligne 2 = sous-titre.',
   card: 'Ligne 1 = titre, ligne 2 = description.',
   stats: 'Une valeur puis son texte, a repeter 3 fois.',

@@ -77,6 +77,65 @@ export default function RenderElement({ element, selected, onSelect, onInlineEdi
 
   const renderNode = () => {
     switch (element.type) {
+      case 'appTopBar': {
+        const [hello, title] = (element.content || '').split('\n');
+        return (
+          <header {...sharedProps} className={`${base} flex items-center justify-between shadow-sm`.trim()}>
+            <div className="min-w-0">
+              <p className="text-sm opacity-80">{hello || 'Bonjour'}</p>
+              <h2 className="break-words text-xl font-black">{title || 'Ecran'}</h2>
+            </div>
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white/20 font-bold">A</div>
+          </header>
+        );
+      }
+      case 'appBottomNav': {
+        const items = (element.content || '').split('\n').filter(Boolean).slice(0, 5);
+        return (
+          <nav {...sharedProps} className={`${base} border border-[color:var(--ncf-surface-soft)] shadow-sm`.trim()}>
+            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(items.length, 1)}, minmax(0, 1fr))` }}>
+              {items.map((item, index) => (
+                <div key={item} className={`min-w-0 rounded-2xl px-2 py-2 text-center text-xs font-semibold ${index === 0 ? 'bg-[color:var(--ncf-accent)] text-white' : 'text-[color:var(--ncf-muted)]'}`}>
+                  <span className="mx-auto mb-1 block h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                  <span className="block truncate">{item}</span>
+                </div>
+              ))}
+            </div>
+          </nav>
+        );
+      }
+      case 'appListItem': {
+        const [title, status, meta] = (element.content || '').split('\n');
+        return (
+          <div {...sharedProps} className={`${base} flex items-center gap-3 border border-[color:var(--ncf-surface-soft)] shadow-sm`.trim()}>
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[color:var(--ncf-surface-soft)] font-bold text-[color:var(--ncf-accent)]">{(title || 'A').slice(0, 1)}</div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold">{title || 'Element'}</p>
+              <p className="truncate text-sm text-[color:var(--ncf-muted)]">{status || 'Statut'}</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-[color:var(--ncf-surface-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--ncf-muted)]">{meta || 'Info'}</span>
+          </div>
+        );
+      }
+      case 'appActionCard': {
+        const [title, text, action] = (element.content || '').split('\n');
+        return (
+          <div {...sharedProps} className={`${base} border border-[color:var(--ncf-surface-soft)] shadow-sm`.trim()}>
+            <p className="text-lg font-black">{title || 'Action'}</p>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--ncf-muted)]">{text || 'Description'}</p>
+            <button type="button" className="mt-4 rounded-2xl bg-[color:var(--ncf-accent)] px-4 py-2 text-sm font-semibold text-white">{action || 'Ouvrir'}</button>
+          </div>
+        );
+      }
+      case 'appSearch':
+        return (
+          <div {...sharedProps} className={`${base} flex items-center gap-3 border border-[color:var(--ncf-surface-soft)] text-[color:var(--ncf-muted)] shadow-sm`.trim()}>
+            <span className="text-lg">⌕</span>
+            <span className="truncate">{element.content || 'Rechercher'}</span>
+          </div>
+        );
+      case 'appFab':
+        return <button {...sharedProps} className={`${base} grid place-items-center text-2xl font-black shadow-xl`.trim()}>{element.content || '+'}</button>;
       case 'text':
         return <p {...sharedProps} contentEditable={!previewMode && selected} suppressContentEditableWarning onInput={onInlineInput}>{element.content}</p>;
       case 'hero': {

@@ -208,17 +208,20 @@ export default function BuilderCanvas({
   return (
     <section className="rounded-2xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface)] p-4 shadow-sm md:p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">Zone de creation</h2>
+        <div>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">Ecran de l'application</h2>
+          <p className="text-xs text-[color:var(--ncf-muted)]">Assemble les ecrans, les actions et la navigation de ton app.</p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={viewport}
             onChange={(e) => onViewportChange?.(e.target.value)}
             className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
           >
-            <option value="desktop">Ordinateur</option>
-            <option value="iphone">iPhone</option>
             <option value="android">Android</option>
+            <option value="iphone">iPhone</option>
             <option value="tablet">Tablet</option>
+            <option value="desktop">Ordinateur</option>
           </select>
 
           <select
@@ -306,7 +309,7 @@ export default function BuilderCanvas({
           style={{ width: frame.width, minHeight: frame.minHeight }}
         >
           {elements.length === 0 ? (
-            <div className="grid min-h-[430px] place-items-center rounded-xl border border-dashed border-[color:var(--ncf-muted)] bg-[color:var(--ncf-surface)]/60 text-center text-[color:var(--ncf-muted)]">Ajoute un composant pour commencer</div>
+            <div className="grid min-h-[430px] place-items-center rounded-xl border border-dashed border-[color:var(--ncf-muted)] bg-[color:var(--ncf-surface)]/60 px-6 text-center text-[color:var(--ncf-muted)]">Ajoute un modele d'app ou des composants pour construire ton premier ecran</div>
           ) : isFreeLayout ? (
             <div
               className="relative min-h-[430px] rounded-xl border border-dashed border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface)]/70"
