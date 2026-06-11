@@ -168,8 +168,10 @@ const mobileFiles = (screensInput, theme) => {
   "dependencies": {
     "expo": "~51.0.0",
     "expo-status-bar": "~1.12.1",
+    "react-dom": "18.2.0",
     "react": "18.2.0",
-    "react-native": "0.74.3"
+    "react-native": "0.74.5",
+    "react-native-web": "~0.19.10"
   }
 }
 `,
