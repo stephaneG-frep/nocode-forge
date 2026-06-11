@@ -1,5 +1,5 @@
 import RenderElement from './RenderElement';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const previewFrames = {
   desktop: { label: 'Ordinateur', width: '100%', shell: 'bg-white', inner: 'min-h-[500px]' },
@@ -7,9 +7,16 @@ const previewFrames = {
   tablet: { label: 'Tablette', width: 760, shell: 'rounded-[1.4rem] border-[8px] border-slate-800 bg-slate-800 p-2 shadow-2xl', inner: 'min-h-[680px] rounded-xl bg-white' },
 };
 
-export default function PreviewModal({ open, onClose, elements }) {
+export default function PreviewModal({ open, onClose, elements, screens = [], activeScreenId }) {
   const [frameId, setFrameId] = useState('desktop');
+  const [previewScreenId, setPreviewScreenId] = useState(activeScreenId);
   const frame = previewFrames[frameId] || previewFrames.desktop;
+  const currentScreen = screens.find((screen) => screen.id === previewScreenId) || screens.find((screen) => screen.id === activeScreenId) || screens[0];
+  const visibleElements = currentScreen?.elements || elements;
+
+  useEffect(() => {
+    if (open) setPreviewScreenId(activeScreenId);
+  }, [open, activeScreenId]);
 
   if (!open) return null;
 
@@ -21,7 +28,18 @@ export default function PreviewModal({ open, onClose, elements }) {
             <h3 className="text-lg font-semibold text-slate-900">Apercu</h3>
             <p className="text-sm text-slate-500">Verifie ton projet sur ordinateur, telephone ou tablette.</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {screens.length > 0 ? (
+              <select
+                value={currentScreen?.id || ''}
+                onChange={(e) => setPreviewScreenId(e.target.value)}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+              >
+                {screens.map((screen) => (
+                  <option key={screen.id} value={screen.id}>{screen.name}</option>
+                ))}
+              </select>
+            ) : null}
             {Object.entries(previewFrames).map(([id, item]) => (
               <button
                 key={id}
@@ -44,12 +62,20 @@ export default function PreviewModal({ open, onClose, elements }) {
               <div className="mx-auto mb-2 h-1.5 w-20 rounded-full bg-slate-700" />
             ) : null}
             <div className={`${frame.inner} overflow-auto p-4 md:p-6`}>
-              {elements.length === 0 ? (
+              {visibleElements.length === 0 ? (
                 <div className="grid min-h-[430px] place-items-center rounded-xl border border-dashed border-slate-300 bg-white/60 text-center text-slate-500">Ajoute un composant pour commencer</div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {elements.map((element) => (
-                    <RenderElement key={element.id} element={element} selected={false} onSelect={() => {}} onInlineEdit={() => {}} previewMode />
+                  {visibleElements.map((element) => (
+                    <RenderElement
+                      key={element.id}
+                      element={element}
+                      selected={false}
+                      onSelect={() => {}}
+                      onInlineEdit={() => {}}
+                      onNavigate={setPreviewScreenId}
+                      previewMode
+                    />
                   ))}
                 </div>
               )}

@@ -56,6 +56,11 @@ const contentHelp = {
   appActionCard: 'Ligne 1 = titre, ligne 2 = texte, ligne 3 = bouton.',
   appSearch: 'Texte affiche dans la recherche.',
   appFab: 'Texte du bouton flottant, souvent +.',
+  productCard: 'Ligne 1 = produit, ligne 2 = prix, ligne 3 = statut.',
+  orderCard: 'Ligne 1 = commande, ligne 2 = statut, ligne 3 = date.',
+  userProfile: 'Ligne 1 = nom, ligne 2 = role, ligne 3 = email.',
+  notificationCard: 'Ligne 1 = titre, ligne 2 = message, ligne 3 = moment.',
+  metricCard: 'Ligne 1 = libelle, ligne 2 = chiffre, ligne 3 = evolution.',
   hero: 'Ligne 1 = grand titre, ligne 2 = sous-titre.',
   card: 'Ligne 1 = titre, ligne 2 = description.',
   stats: 'Une valeur puis son texte, a repeter 3 fois.',
@@ -92,7 +97,9 @@ function SelectField({ label, value, options, onChange }) {
   );
 }
 
-export default function PropertiesPanel({ selectedElement, onUpdate }) {
+const navigableTypes = new Set(['button', 'appActionCard', 'appListItem', 'appFab', 'card', 'cta', 'productCard', 'orderCard', 'notificationCard']);
+
+export default function PropertiesPanel({ selectedElement, onUpdate, screens = [] }) {
   if (!selectedElement) {
     return (
       <aside className="rounded-2xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface)] p-4 shadow-sm">
@@ -197,6 +204,23 @@ export default function PropertiesPanel({ selectedElement, onUpdate }) {
             Telephone
           </label>
         </div>
+
+        {navigableTypes.has(selectedElement.type) ? (
+          <label className="block space-y-1 rounded-2xl border border-[color:var(--ncf-surface-soft)] p-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[color:var(--ncf-muted)]">Navigation</span>
+            <select
+              value={props.targetScreen || ''}
+              onChange={(e) => onUpdate('props.targetScreen', e.target.value)}
+              className="w-full rounded-xl border border-[color:var(--ncf-surface-soft)] bg-[color:var(--ncf-surface-soft)] px-3 py-2 text-sm text-[color:var(--ncf-text)]"
+            >
+              <option value="">Ne va nulle part</option>
+              {screens.map((screen) => (
+                <option key={screen.id} value={screen.id}>{screen.name}</option>
+              ))}
+            </select>
+            <span className="block text-xs text-[color:var(--ncf-muted)]">Dans l apercu, un clic ouvrira cet ecran.</span>
+          </label>
+        ) : null}
 
         <details className="rounded-2xl border border-[color:var(--ncf-surface-soft)] p-3">
           <summary className="cursor-pointer text-sm font-semibold text-[color:var(--ncf-text)]">Avance</summary>

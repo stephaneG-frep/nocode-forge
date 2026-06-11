@@ -10,7 +10,8 @@ import ToastContainer from './components/ToastContainer';
 import ThemeEditorModal from './components/ThemeEditorModal';
 import HelpCenter from './components/HelpCenter';
 import LayersPanel from './components/LayersPanel';
-import { createDefaultElement, createTemplateElements } from './utils/defaultComponents';
+import ScreensPanel from './components/ScreensPanel';
+import { createDefaultElement, createTemplateElements, createTemplateScreens } from './utils/defaultComponents';
 import { generateProjectFiles } from './utils/generateCode';
 import { defaultThemeId, getThemeById, themes } from './utils/themes';
 
@@ -21,6 +22,7 @@ const VIEWPORT_STORAGE_KEY = 'nocode-forge-viewport';
 const CANVAS_LAYOUT_STORAGE_KEY = 'nocode-forge-canvas-layout';
 const PROJECTS_STORAGE_KEY = 'nocode-forge-projects';
 const ACTIVE_PROJECT_STORAGE_KEY = 'nocode-forge-active-project';
+const ACTIVE_SCREEN_STORAGE_KEY = 'nocode-forge-active-screen';
 const HISTORY_LIMIT = 80;
 const COALESCE_WINDOW_MS = 450;
 
@@ -49,15 +51,41 @@ const duplicateWithNewId = (el) => ({
 
 const slugify = (text) => text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
+const uid = (prefix) => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+const normalizeProject = (project) => {
+  if (!project) return { id: 'default', name: 'Mon projet', screens: [{ id: 'screen-home', name: 'Accueil', elements: [] }] };
+  if (Array.isArray(project.screens) && project.screens.length > 0) {
+    return {
+      ...project,
+      screens: project.screens.map((screen, index) => ({
+        id: screen.id || `screen-${index + 1}`,
+        name: screen.name || `Ecran ${index + 1}`,
+        elements: Array.isArray(screen.elements) ? screen.elements : [],
+      })),
+    };
+  }
+  return {
+    ...project,
+    screens: [{ id: 'screen-home', name: 'Accueil', elements: Array.isArray(project.elements) ? project.elements : [] }],
+  };
+};
+
 export default function App() {
   const [projects, setProjects] = useState(() => {
     const saved = readJson(PROJECTS_STORAGE_KEY, null);
-    if (Array.isArray(saved) && saved.length > 0) return saved;
-    return [{ id: 'default', name: 'Mon projet', elements: readJson(STORAGE_KEY, []) }];
+    if (Array.isArray(saved) && saved.length > 0) return saved.map(normalizeProject);
+    return [normalizeProject({ id: 'default', name: 'Mon projet', elements: readJson(STORAGE_KEY, []) })];
   });
   const [activeProjectId, setActiveProjectId] = useState(() => localStorage.getItem(ACTIVE_PROJECT_STORAGE_KEY) || 'default');
   const activeProject = useMemo(() => projects.find((project) => project.id === activeProjectId) || projects[0], [projects, activeProjectId]);
-  const [elements, setElements] = useState(() => activeProject?.elements || []);
+  const [activeScreenId, setActiveScreenId] = useState(() => localStorage.getItem(ACTIVE_SCREEN_STORAGE_KEY) || activeProject?.screens?.[0]?.id || 'screen-home');
+  const activeScreen = useMemo(
+    () => activeProject?.screens?.find((screen) => screen.id === activeScreenId) || activeProject?.screens?.[0],
+    [activeProject, activeScreenId]
+  );
+  const screens = activeProject?.screens || [];
+  const [elements, setElements] = useState(() => activeScreen?.elements || []);
   const [customThemes, setCustomThemes] = useState(() => readJson(CUSTOM_THEMES_STORAGE_KEY, []));
   const [themeId, setThemeId] = useState(() => localStorage.getItem(THEME_STORAGE_KEY) || defaultThemeId);
   const [viewport, setViewport] = useState(() => localStorage.getItem(VIEWPORT_STORAGE_KEY) || 'desktop');
@@ -88,21 +116,37 @@ export default function App() {
 
   useEffect(() => {
     if (!activeProject) return;
-    setElements(activeProject.elements || []);
+    const nextScreenId = activeProject.screens?.some((screen) => screen.id === activeScreenId)
+      ? activeScreenId
+      : activeProject.screens?.[0]?.id;
+    if (nextScreenId && nextScreenId !== activeScreenId) {
+      setActiveScreenId(nextScreenId);
+      return;
+    }
+    const screen = activeProject.screens?.find((item) => item.id === nextScreenId);
+    setElements(screen?.elements || []);
     setSelectedIds([]);
-  }, [activeProjectId]);
+  }, [activeProjectId, activeScreenId]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(elements));
     setProjects((prev) =>
       prev.map((project) =>
-        project.id === activeProjectId ? { ...project, elements } : project
+        project.id === activeProjectId
+          ? {
+              ...project,
+              screens: (project.screens || []).map((screen) =>
+                screen.id === activeScreenId ? { ...screen, elements } : screen
+              ),
+            }
+          : project
       )
     );
-  }, [elements, activeProjectId]);
+  }, [elements]);
 
   useEffect(() => localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects)), [projects]);
   useEffect(() => localStorage.setItem(ACTIVE_PROJECT_STORAGE_KEY, activeProjectId), [activeProjectId]);
+  useEffect(() => localStorage.setItem(ACTIVE_SCREEN_STORAGE_KEY, activeScreenId), [activeScreenId]);
   useEffect(() => localStorage.setItem(THEME_STORAGE_KEY, themeId), [themeId]);
   useEffect(() => localStorage.setItem(CUSTOM_THEMES_STORAGE_KEY, JSON.stringify(customThemes)), [customThemes]);
   useEffect(() => localStorage.setItem(VIEWPORT_STORAGE_KEY, viewport), [viewport]);
@@ -140,6 +184,21 @@ export default function App() {
   };
 
   const addTemplate = (templateId) => {
+    const templateScreens = createTemplateScreens(templateId);
+    if (templateScreens?.length) {
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === activeProjectId
+            ? { ...project, screens: [...(project.screens || []), ...templateScreens] }
+            : project
+        )
+      );
+      setActiveScreenId(templateScreens[0].id);
+      setElements(templateScreens[0].elements || []);
+      pushToast('App multi-ecrans ajoutee', 'success');
+      return;
+    }
+
     const newElements = createTemplateElements(templateId);
     if (newElements.length === 0) return;
     applyChange((prev) => [...prev, ...newElements]);
@@ -213,9 +272,10 @@ export default function App() {
     const name = window.prompt('Nom du nouveau projet ?', `Projet ${projects.length + 1}`);
     if (!name) return;
     const id = `project-${Date.now().toString(36)}`;
-    const project = { id, name: name.trim(), elements: [] };
+    const project = normalizeProject({ id, name: name.trim(), elements: [] });
     setProjects((prev) => [...prev, project]);
     setActiveProjectId(id);
+    setActiveScreenId(project.screens[0].id);
     setElements([]);
     pushToast('Nouveau projet cree', 'success');
   };
@@ -224,16 +284,80 @@ export default function App() {
     const name = window.prompt('Sauver sous quel nom ?', `${activeProject?.name || 'Projet'} copie`);
     if (!name) return;
     const id = `project-${Date.now().toString(36)}`;
-    const project = { id, name: name.trim(), elements };
+    const project = normalizeProject({ ...activeProject, id, name: name.trim() });
     setProjects((prev) => [...prev, project]);
     setActiveProjectId(id);
+    setActiveScreenId(project.screens?.[0]?.id || 'screen-home');
     pushToast('Projet copie', 'success');
+  };
+
+  const addScreen = () => {
+    const name = window.prompt('Nom du nouvel ecran ?', `Ecran ${screens.length + 1}`);
+    if (!name) return;
+    const screen = { id: uid('screen'), name: name.trim(), elements: [] };
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === activeProjectId ? { ...project, screens: [...(project.screens || []), screen] } : project
+      )
+    );
+    setActiveScreenId(screen.id);
+    setElements([]);
+    pushToast('Ecran ajoute', 'success');
+  };
+
+  const renameScreen = (screenId) => {
+    const current = screens.find((screen) => screen.id === screenId);
+    const name = window.prompt('Nouveau nom de l ecran ?', current?.name || 'Ecran');
+    if (!name) return;
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === activeProjectId
+          ? { ...project, screens: project.screens.map((screen) => (screen.id === screenId ? { ...screen, name: name.trim() } : screen)) }
+          : project
+      )
+    );
+    pushToast('Ecran renomme', 'success');
+  };
+
+  const duplicateScreen = (screenId) => {
+    const source = screens.find((screen) => screen.id === screenId);
+    if (!source) return;
+    const clone = {
+      id: uid('screen'),
+      name: `${source.name} copie`,
+      elements: source.elements.map(duplicateWithNewId),
+    };
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === activeProjectId ? { ...project, screens: [...project.screens, clone] } : project
+      )
+    );
+    setActiveScreenId(clone.id);
+    setElements(clone.elements);
+    pushToast('Ecran copie', 'success');
+  };
+
+  const deleteScreen = (screenId) => {
+    if (screens.length <= 1) return pushToast('Il faut garder au moins un ecran', 'info');
+    if (!window.confirm('Supprimer cet ecran ?')) return;
+    const remaining = screens.filter((screen) => screen.id !== screenId);
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === activeProjectId ? { ...project, screens: remaining } : project
+      )
+    );
+    if (activeScreenId === screenId) {
+      setActiveScreenId(remaining[0].id);
+      setElements(remaining[0].elements || []);
+    }
+    pushToast('Ecran supprime', 'success');
   };
 
   const exportJson = () => {
     const payload = {
       name: activeProject?.name || 'NoCode Forge',
-      elements,
+      screens: activeProject?.screens || [{ id: activeScreenId, name: activeScreen?.name || 'Accueil', elements }],
+      activeScreenId,
       themeId,
       viewport,
       canvasLayout,
@@ -258,13 +382,15 @@ export default function App() {
       if (!file) return;
       try {
         const parsed = JSON.parse(await file.text());
+        const importedScreens = parsed.screens || null;
         const importedElements = Array.isArray(parsed) ? parsed : parsed.elements;
-        if (!Array.isArray(importedElements)) throw new Error('Invalid project');
+        if (!Array.isArray(importedScreens) && !Array.isArray(importedElements)) throw new Error('Invalid project');
         const id = `project-${Date.now().toString(36)}`;
-        const project = { id, name: parsed.name || file.name.replace(/\.json$/i, ''), elements: importedElements };
+        const project = normalizeProject({ id, name: parsed.name || file.name.replace(/\.json$/i, ''), screens: importedScreens, elements: importedElements });
         setProjects((prev) => [...prev, project]);
         setActiveProjectId(id);
-        setElements(importedElements);
+        setActiveScreenId(project.screens[0].id);
+        setElements(project.screens[0].elements || []);
         pushToast('Projet importe', 'success');
       } catch {
         pushToast('Import impossible', 'error');
@@ -597,7 +723,11 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [selectedIds, history, future, elements, canvasLayout]);
 
-  const projectFilesByTarget = useMemo(() => generateProjectFiles(elements, activeTheme), [elements, activeTheme]);
+  const exportScreens = useMemo(
+    () => screens.length ? screens : [{ id: activeScreenId, name: activeScreen?.name || 'Accueil', elements }],
+    [screens, activeScreenId, activeScreen, elements]
+  );
+  const projectFilesByTarget = useMemo(() => generateProjectFiles(exportScreens, activeTheme), [exportScreens, activeTheme]);
 
   const copyFile = async (target, fileName) => {
     const content = projectFilesByTarget?.[target]?.[fileName];
@@ -686,14 +816,23 @@ export default function App() {
         />
 
         <div className="space-y-4">
+          <ScreensPanel
+            screens={screens}
+            activeScreenId={activeScreenId}
+            onSelectScreen={setActiveScreenId}
+            onAddScreen={addScreen}
+            onRenameScreen={renameScreen}
+            onDuplicateScreen={duplicateScreen}
+            onDeleteScreen={deleteScreen}
+          />
           <LayersPanel elements={elements} selectedIds={selectedIds} onSelect={onSelectElement} />
-          <PropertiesPanel selectedElement={selectedElement} onUpdate={updateSelected} />
+          <PropertiesPanel selectedElement={selectedElement} onUpdate={updateSelected} screens={screens} />
         </div>
       </main>
 
       <button onClick={() => setHelpOpen(true)} className="fixed bottom-4 right-4 z-40 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl hover:bg-slate-700">? Aide</button>
 
-      <PreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} elements={elements} />
+      <PreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} elements={elements} screens={screens} activeScreenId={activeScreenId} />
       <CodeExporter open={exportOpen} filesByTarget={projectFilesByTarget} onClose={() => setExportOpen(false)} onCopy={copyFile} onDownloadZip={downloadZip} />
       <ThemeEditorModal
         open={themeEditorOpen}

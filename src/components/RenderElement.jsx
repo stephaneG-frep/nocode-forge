@@ -21,7 +21,7 @@ const parseSize = (value) => {
   return null;
 };
 
-export default function RenderElement({ element, selected, onSelect, onInlineEdit, previewMode }) {
+export default function RenderElement({ element, selected, onSelect, onInlineEdit, previewMode, onNavigate }) {
   const rootRef = useRef(null);
   const selectedRing = selected && !previewMode ? 'ring-2 ring-brand-500 ring-offset-2' : '';
   const base = `${classesFromProps(element)} min-w-0 max-w-full break-words ${selectedRing}`.trim();
@@ -35,6 +35,11 @@ export default function RenderElement({ element, selected, onSelect, onInlineEdi
   };
 
   const onContainerClick = (e) => {
+    if (previewMode && element.props?.targetScreen && onNavigate) {
+      e.stopPropagation();
+      onNavigate(element.props.targetScreen);
+      return;
+    }
     if (!previewMode) {
       e.stopPropagation();
       onSelect(element.id, e.shiftKey);
@@ -73,7 +78,10 @@ export default function RenderElement({ element, selected, onSelect, onInlineEdi
     window.addEventListener('mouseup', onMouseUp);
   };
 
-  const sharedProps = { className: base, onClick: onContainerClick };
+  const sharedProps = {
+    className: `${base} ${previewMode && element.props?.targetScreen ? 'cursor-pointer' : ''}`.trim(),
+    onClick: onContainerClick,
+  };
 
   const renderNode = () => {
     switch (element.type) {
@@ -136,6 +144,64 @@ export default function RenderElement({ element, selected, onSelect, onInlineEdi
         );
       case 'appFab':
         return <button {...sharedProps} className={`${base} grid place-items-center text-2xl font-black shadow-xl`.trim()}>{element.content || '+'}</button>;
+      case 'productCard': {
+        const [name, price, status] = (element.content || '').split('\n');
+        return (
+          <div {...sharedProps} className={`${base} border border-[color:var(--ncf-surface-soft)] shadow-sm`.trim()}>
+            <div className="mb-4 h-28 rounded-2xl bg-gradient-to-br from-slate-200 to-slate-100" />
+            <p className="break-words text-lg font-black">{name || 'Produit'}</p>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <span className="font-bold text-[color:var(--ncf-accent-strong)]">{price || 'Prix'}</span>
+              <span className="rounded-full bg-[color:var(--ncf-surface-soft)] px-3 py-1 text-xs font-semibold text-[color:var(--ncf-muted)]">{status || 'Statut'}</span>
+            </div>
+          </div>
+        );
+      }
+      case 'orderCard': {
+        const [order, status, date] = (element.content || '').split('\n');
+        return (
+          <div {...sharedProps} className={`${base} border border-[color:var(--ncf-surface-soft)] shadow-sm`.trim()}>
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-black">{order || 'Commande'}</p>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">{status || 'Statut'}</span>
+            </div>
+            <p className="mt-3 text-sm text-[color:var(--ncf-muted)]">{date || 'Date'}</p>
+          </div>
+        );
+      }
+      case 'userProfile': {
+        const [name, role, email] = (element.content || '').split('\n');
+        return (
+          <div {...sharedProps} className={`${base} flex items-center gap-4`.trim()}>
+            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-[color:var(--ncf-accent)] text-xl font-black text-white">{(name || 'U').slice(0, 1)}</div>
+            <div className="min-w-0">
+              <p className="break-words text-lg font-black">{name || 'Utilisateur'}</p>
+              <p className="break-words text-sm text-[color:var(--ncf-muted)]">{role || 'Role'}</p>
+              <p className="break-words text-xs text-[color:var(--ncf-muted)]">{email || 'email'}</p>
+            </div>
+          </div>
+        );
+      }
+      case 'notificationCard': {
+        const [title, text, time] = (element.content || '').split('\n');
+        return (
+          <div {...sharedProps} className={`${base} border-l-4 border-[color:var(--ncf-accent)] shadow-sm`.trim()}>
+            <p className="font-bold">{title || 'Notification'}</p>
+            <p className="mt-1 text-sm text-[color:var(--ncf-muted)]">{text || 'Message'}</p>
+            <p className="mt-3 text-xs font-semibold text-[color:var(--ncf-accent-strong)]">{time || 'Maintenant'}</p>
+          </div>
+        );
+      }
+      case 'metricCard': {
+        const [label, value, trend] = (element.content || '').split('\n');
+        return (
+          <div {...sharedProps} className={`${base} border border-[color:var(--ncf-surface-soft)] shadow-sm`.trim()}>
+            <p className="text-sm font-semibold text-[color:var(--ncf-muted)]">{label || 'Indicateur'}</p>
+            <p className="mt-2 text-3xl font-black text-[color:var(--ncf-text)]">{value || '0'}</p>
+            <p className="mt-2 text-sm font-bold text-emerald-600">{trend || '+0%'}</p>
+          </div>
+        );
+      }
       case 'text':
         return <p {...sharedProps} contentEditable={!previewMode && selected} suppressContentEditableWarning onInput={onInlineInput}>{element.content}</p>;
       case 'hero': {
@@ -304,6 +370,11 @@ export default function RenderElement({ element, selected, onSelect, onInlineEdi
   return (
     <div ref={rootRef} style={boxStyle} className="group relative block w-full min-w-0 max-w-full align-top">
       {renderNode()}
+      {element.props?.targetScreen && !previewMode ? (
+        <span className="pointer-events-none absolute -top-2 right-2 rounded-full bg-[color:var(--ncf-accent)] px-2 py-1 text-[10px] font-bold text-white shadow-sm">
+          lien
+        </span>
+      ) : null}
       {selected && !previewMode ? (
         <button type="button" data-ncf-control data-ncf-resize aria-label="Resize" onMouseDown={startResize} className="absolute -bottom-2 -right-2 h-4 w-4 cursor-se-resize rounded-sm border border-brand-700 bg-brand-500" />
       ) : null}

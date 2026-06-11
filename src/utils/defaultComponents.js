@@ -13,6 +13,7 @@ const baseProps = {
   visibleDesktop: true,
   visibleTablet: true,
   visibleMobile: true,
+  targetScreen: '',
 };
 
 export const componentLibrary = [
@@ -22,6 +23,11 @@ export const componentLibrary = [
   { type: 'appActionCard', label: 'Carte action', description: 'Carte cliquable', category: 'Application' },
   { type: 'appSearch', label: 'Recherche app', description: 'Barre de recherche', category: 'Application' },
   { type: 'appFab', label: 'Bouton flottant', description: 'Action +', category: 'Application' },
+  { type: 'productCard', label: 'Produit', description: 'Article a vendre', category: 'Metier' },
+  { type: 'orderCard', label: 'Commande', description: 'Suivi commande', category: 'Metier' },
+  { type: 'userProfile', label: 'Profil utilisateur', description: 'Infos client', category: 'Metier' },
+  { type: 'notificationCard', label: 'Notification', description: 'Alerte ou message', category: 'Metier' },
+  { type: 'metricCard', label: 'Indicateur', description: 'Chiffre cle', category: 'Metier' },
   { type: 'text', label: 'Texte', description: 'Petit paragraphe', category: 'Texte' },
   { type: 'hero', label: 'Grand titre', description: 'Bloc d accueil', category: 'Marketing' },
   { type: 'button', label: 'Bouton', description: 'Action principale', category: 'Texte' },
@@ -56,6 +62,8 @@ export const componentLibrary = [
 export const templateLibrary = [
   { id: 'landing', label: 'Landing page', description: 'Accueil + preuves + prix' },
   { id: 'dashboard-app', label: 'App tableau de bord', description: 'Ecran mobile complet' },
+  { id: 'shop-app', label: 'App boutique', description: 'Accueil, produit, panier' },
+  { id: 'client-app', label: 'App client', description: 'Dashboard, commandes, profil' },
   { id: 'restaurant', label: 'Restaurant', description: 'Menu simple et appel a reserver' },
   { id: 'portfolio', label: 'Portfolio', description: 'Presentation + projets + contact' },
   { id: 'mobile-app', label: 'App mobile', description: 'Ecran marketing pour une app' },
@@ -144,6 +152,36 @@ export const createDefaultElement = (type) => {
           width: 56,
           height: 56,
         },
+      };
+    case 'productCard':
+      return {
+        ...shared,
+        content: 'Sac urbain\n59 euros\nEn stock',
+        props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'p-5', radius: 'rounded-3xl' },
+      };
+    case 'orderCard':
+      return {
+        ...shared,
+        content: 'Commande #2048\nEn livraison\nArrive demain',
+        props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'p-5', radius: 'rounded-2xl' },
+      };
+    case 'userProfile':
+      return {
+        ...shared,
+        content: 'Alex Martin\nClient premium\nalex@exemple.fr',
+        props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface-soft)]', padding: 'p-6', radius: 'rounded-3xl' },
+      };
+    case 'notificationCard':
+      return {
+        ...shared,
+        content: 'Nouvelle commande\nUne commande vient d etre confirmee.\nMaintenant',
+        props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'p-4', radius: 'rounded-2xl' },
+      };
+    case 'metricCard':
+      return {
+        ...shared,
+        content: 'Revenus\n2480 euros\n+12%',
+        props: { ...baseProps, backgroundColor: 'bg-[color:var(--ncf-surface)]', padding: 'p-5', radius: 'rounded-2xl' },
       };
     case 'text':
       return { ...shared, content: 'Texte modifiable' };
@@ -430,4 +468,86 @@ export const createTemplateElements = (templateId) => {
     default:
       return [];
   }
+};
+
+export const createTemplateScreens = (templateId) => {
+  if (templateId === 'shop-app') {
+    const homeId = 'screen-shop-home';
+    const productId = 'screen-shop-product';
+    const cartId = 'screen-shop-cart';
+    return [
+      {
+        id: homeId,
+        name: 'Boutique',
+        elements: [
+          withContent('appTopBar', 'Bonjour\nBoutique'),
+          withContent('appSearch', 'Rechercher un produit'),
+          withContent('productCard', 'Sac urbain\n59 euros\nEn stock', { targetScreen: productId }),
+          withContent('productCard', 'Casque audio\n89 euros\nPopulaire', { targetScreen: productId }),
+          withContent('appBottomNav', 'Boutique\nPanier\nProfil'),
+        ],
+      },
+      {
+        id: productId,
+        name: 'Produit',
+        elements: [
+          withContent('appTopBar', 'Produit\nSac urbain'),
+          withContent('image', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80'),
+          withContent('productCard', 'Sac urbain\n59 euros\nLivraison 48h'),
+          withContent('button', 'Ajouter au panier', { targetScreen: cartId }),
+        ],
+      },
+      {
+        id: cartId,
+        name: 'Panier',
+        elements: [
+          withContent('appTopBar', 'Votre panier\n2 articles'),
+          withContent('orderCard', 'Sac urbain\nPret a commander\n59 euros'),
+          withContent('orderCard', 'Casque audio\nPret a commander\n89 euros'),
+          withContent('button', 'Payer maintenant'),
+        ],
+      },
+    ];
+  }
+
+  if (templateId === 'client-app') {
+    const homeId = 'screen-client-home';
+    const ordersId = 'screen-client-orders';
+    const profileId = 'screen-client-profile';
+    return [
+      {
+        id: homeId,
+        name: 'Accueil',
+        elements: [
+          withContent('appTopBar', 'Bonjour Alex\nEspace client'),
+          withContent('metricCard', 'Solde\n2480 euros\n+12%'),
+          withContent('notificationCard', 'Message support\nVotre demande a recu une reponse.\nIl y a 5 min', { targetScreen: ordersId }),
+          withContent('appActionCard', 'Voir mes commandes\nSuivre les achats et les livraisons.\nOuvrir', { targetScreen: ordersId }),
+          withContent('appBottomNav', 'Accueil\nCommandes\nProfil'),
+        ],
+      },
+      {
+        id: ordersId,
+        name: 'Commandes',
+        elements: [
+          withContent('appTopBar', 'Suivi\nCommandes'),
+          withContent('orderCard', 'Commande #2048\nEn livraison\nArrive demain'),
+          withContent('orderCard', 'Commande #2032\nTerminee\nLivree hier'),
+          withContent('button', 'Retour accueil', { targetScreen: homeId }),
+        ],
+      },
+      {
+        id: profileId,
+        name: 'Profil',
+        elements: [
+          withContent('appTopBar', 'Mon compte\nProfil'),
+          withContent('userProfile', 'Alex Martin\nClient premium\nalex@exemple.fr'),
+          withContent('list', 'Notifications activees\nAdresse verifiee\nPaiement securise'),
+          withContent('button', 'Retour accueil', { targetScreen: homeId }),
+        ],
+      },
+    ];
+  }
+
+  return null;
 };
