@@ -68,23 +68,40 @@ export default function CodeExporter({
           <aside className="overflow-y-auto border-r border-slate-200 bg-slate-50 p-2">
             <div className="mb-3 rounded-2xl bg-white p-3 text-sm text-slate-600 shadow-sm">
               <p className="font-semibold text-slate-900">{target === 'web' ? 'Site web React' : 'Application mobile Expo'}</p>
-              <p className="mt-1">{target === 'web' ? 'A lancer avec npm install puis npm run dev.' : 'Export Expo multi-ecrans avec navigation. A lancer avec npm install puis npm run start.'}</p>
+              <p className="mt-1">{target === 'web' ? 'A lancer avec npm install puis npm run dev.' : 'Export Expo multi-ecrans avec navigation. A lancer avec npm run setup puis npm run start:lan.'}</p>
             </div>
             {target === 'mobile' ? (
-              <div className="mb-3 rounded-2xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-950">
-                <p className="font-black">Sur ton smartphone</p>
-                <ol className="mt-2 list-decimal space-y-1 pl-4">
-                  <li>Telecharge le ZIP mobile.</li>
-                  <li>Dezippe-le sur l ordinateur.</li>
-                  <li>Dans ce dossier, lance <span className="font-mono font-semibold">npm install</span>.</li>
-                  <li>Puis lance <span className="font-mono font-semibold">npm run start:tunnel</span>.</li>
-                  <li>Installe Expo Go sur le telephone.</li>
-                  <li>Scanne le QR code affiche par Expo.</li>
-                </ol>
-                <p className="mt-2 text-xs text-blue-800">
-                  Si Expo dit "incompatible", mets Expo Go a jour puis relance le tunnel.
-                </p>
-              </div>
+              <>
+                <div className="mb-3 rounded-2xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-950">
+                  <p className="font-black">Sur ton smartphone</p>
+                  <ol className="mt-2 list-decimal space-y-1 pl-4">
+                    <li>Telecharge le ZIP mobile.</li>
+                    <li>Dezippe-le sur l ordinateur.</li>
+                    <li>Dans ce dossier, lance <span className="font-mono font-semibold">npm run setup</span>.</li>
+                    <li>Puis lance <span className="font-mono font-semibold">npm run start:lan</span>.</li>
+                    <li>Installe Expo Go sur le telephone.</li>
+                    <li>Scanne le QR code affiche par Expo.</li>
+                  </ol>
+                  <p className="mt-2 text-xs text-blue-800">
+                    Si le Wi-Fi bloque, essaie ensuite npm run start:tunnel.
+                  </p>
+                </div>
+                <div className="mb-3 rounded-2xl border border-amber-100 bg-amber-50 p-3 text-sm text-amber-950">
+                  <p className="font-black">Si le QR ne marche pas</p>
+                  <p className="mt-1">
+                    Ce n est pas bloquant : copie l URL affichee par Expo, puis entre cette URL dans Expo Go.
+                  </p>
+                  <p className="mt-2 font-mono text-xs font-semibold text-amber-900">npm run start:lan</p>
+                </div>
+                <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm">
+                  <p className="font-black text-slate-900">Creer un APK Android</p>
+                  <p className="mt-1">
+                    Apres le test avec Expo Go, tu peux creer un fichier installable Android avec EAS.
+                  </p>
+                  <p className="mt-2 font-mono text-xs font-semibold text-slate-900">npx eas-cli login</p>
+                  <p className="mt-1 font-mono text-xs font-semibold text-slate-900">npm run build:android:apk</p>
+                </div>
+              </>
             ) : (
               <div className="mb-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-950">
                 <p className="font-black">Voir sur telephone</p>

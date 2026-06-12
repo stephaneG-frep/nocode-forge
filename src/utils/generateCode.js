@@ -4,6 +4,15 @@ const normalizeScreens = (screens) => {
   return [{ id: 'screen-home', name: 'Accueil', elements: [] }];
 };
 
+const slugify = (text) =>
+  (text || 'app')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'app';
+
 const webFiles = (screensInput, theme) => {
   const screens = normalizeScreens(screensInput);
   const serializedScreens = JSON.stringify(screens, null, 2);
@@ -154,27 +163,34 @@ const mobileFiles = (screensInput, theme) => {
   const vars = theme?.vars || {};
   const appName = screens[0]?.name || 'Mon application';
   const safeAppName = appName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const appSlug = slugify(appName);
+  const androidPackage = `com.nocodeforge.${appSlug.replace(/-/g, '')}`;
 
   return {
     'package.json': `{
   "name": "nocode-forge-mobile-export",
   "version": "1.0.0",
   "private": true,
-  "main": "node_modules/expo/AppEntry.js",
+  "main": "index.js",
   "scripts": {
+    "setup": "npm install --no-audit --no-fund --progress=true",
     "start": "expo start",
+    "start:lan": "expo start --lan",
     "start:tunnel": "expo start --tunnel",
+    "start:local": "expo start --localhost",
+    "start:web": "expo start --web",
     "doctor": "expo-doctor",
+    "build:android": "npx eas-cli build -p android --profile preview",
+    "build:android:apk": "npx eas-cli build -p android --profile apk",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "~56.0.0",
-    "expo-status-bar": "~56.0.4",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native": "0.85.0",
+    "expo": "~54.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.0",
     "react-native-web": "~0.21.0"
   },
   "devDependencies": {
@@ -182,10 +198,15 @@ const mobileFiles = (screensInput, theme) => {
   }
 }
 `,
+    'index.js': `import { registerRootComponent } from 'expo';
+import App from './App';
+
+registerRootComponent(App);
+`,
     'app.json': `{
   "expo": {
     "name": "${safeAppName}",
-    "slug": "nocode-forge-mobile",
+    "slug": "${appSlug}",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -193,7 +214,7 @@ const mobileFiles = (screensInput, theme) => {
       "backgroundColor": "${vars['--ncf-app-bg'] || '#e2e8f0'}"
     },
     "android": {
-      "package": "com.nocodeforge.mobile"
+      "package": "${androidPackage}"
     },
     "ios": {
       "supportsTablet": true
@@ -201,9 +222,31 @@ const mobileFiles = (screensInput, theme) => {
   }
 }
 `,
+    'eas.json': `{
+  "cli": {
+    "version": ">= 13.0.0"
+  },
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "apk": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  }
+}
+`,
     'App.js': `import React, { useMemo, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, Pressable, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, Pressable, View } from 'react-native';
 import { screens } from './src/data/screens';
 import { theme } from './src/theme';
 import { RenderElement } from './src/components/RenderElement';
@@ -215,7 +258,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.appBg }]}>
-      <StatusBar style="dark" />
+      <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <View style={styles.handle} />
         <View style={styles.headerRow}>
@@ -503,32 +546,64 @@ Il contient le projet mobile. Pour le voir sur telephone, on utilise Expo Go.
 4. Installe les dependances :
 
 \`\`\`bash
-npm install
+npm run setup
 \`\`\`
 
-5. Lance Expo :
+5. Lance Expo en mode Wi-Fi local :
 
 \`\`\`bash
-npm run start
+npm run start:lan
 \`\`\`
 
 6. Installe l application Expo Go sur ton smartphone.
 7. Scanne le QR code affiche dans le terminal ou dans la page Expo.
 
+Si le QR code ne fonctionne pas, utilise l URL affichee par Expo.
+Dans Expo Go, choisis l option pour entrer une URL, puis colle l adresse.
+
 Ton ordinateur et ton smartphone doivent etre connectes au meme Wi-Fi.
+
+## Tester sur telephone avec l URL
+
+Cette methode est souvent plus fiable que le QR code.
+
+1. Lance :
+
+\`\`\`bash
+npm run start:lan
+\`\`\`
+
+2. Recupere l URL affichee par Expo.
+3. Ouvre Expo Go sur ton telephone.
+4. Entre l URL manuellement dans Expo Go.
+
+Si l URL locale ne marche pas, essaie :
+
+\`\`\`bash
+npm run start:tunnel
+\`\`\`
+
+Puis entre la nouvelle URL dans Expo Go.
 
 ## Si le QR code est illisible ou de travers
 
 Ce n est pas grave : c est souvent le terminal qui affiche mal le QR code.
 
-Essaie plutot :
+Ouvre l adresse affichee par Expo dans le navigateur de ton ordinateur : la page Expo affiche souvent un QR plus propre.
+
+Tu peux aussi relancer en Wi-Fi local :
+
+\`\`\`bash
+npm run start:lan
+\`\`\`
+
+Si le Wi-Fi local ne marche pas, essaie le tunnel :
 
 \`\`\`bash
 npm run start:tunnel
 \`\`\`
 
 Puis scanne le nouveau QR code.
-Tu peux aussi ouvrir l adresse affichee par Expo dans le navigateur de ton ordinateur : la page Expo affiche souvent un QR plus propre.
 
 ## Si l URL ne marche pas
 
@@ -536,7 +611,13 @@ Essaie dans cet ordre :
 
 1. Verifie que le telephone et l ordinateur sont sur le meme Wi-Fi.
 2. Coupe le VPN si tu en as un.
-3. Relance avec :
+3. Relance en Wi-Fi local :
+
+\`\`\`bash
+npm run start:lan
+\`\`\`
+
+4. Si ca bloque encore, essaie le tunnel :
 
 \`\`\`bash
 npm run start:tunnel
@@ -544,16 +625,33 @@ npm run start:tunnel
 
 Le mode tunnel passe par internet et evite beaucoup de problemes de box/Wi-Fi.
 
+## Si le tunnel affiche "remote gone away"
+
+Ce n est pas une erreur de ton app. Le service tunnel d Expo n a pas reussi a rester connecte.
+
+Arrete avec \`Ctrl + C\`, puis lance :
+
+\`\`\`bash
+npm run start:lan
+\`\`\`
+
+Si tu veux juste verifier que l app fonctionne sur ordinateur :
+
+\`\`\`bash
+npm run start:web
+\`\`\`
+
 ## Si Expo Go affiche "project is incompatible"
 
-Le plus souvent, Expo Go sur le telephone n a pas la bonne version.
+Le plus souvent, la version Expo du projet ne correspond pas a Expo Go.
+Ce projet exporte utilise Expo SDK 54, choisi pour rester compatible avec Expo Go stable.
 
 1. Mets Expo Go a jour depuis le Play Store ou l App Store.
 2. Ferme completement Expo Go.
 3. Dans le terminal, relance :
 
 \`\`\`bash
-npm run start:tunnel
+npm run start:lan
 \`\`\`
 
 4. Scanne le nouveau QR code.
@@ -567,13 +665,32 @@ npx expo install --fix
 Puis relance :
 
 \`\`\`bash
-npm run start:tunnel
+npm run start:lan
 \`\`\`
 
 ## Si npm affiche des warnings
 
 Les lignes \`npm warn deprecated\` sont des avertissements, pas forcement des erreurs.
-Si \`npm install\` finit sans afficher \`npm ERR!\`, tu peux continuer avec \`npm run start\`.
+Si l installation finit sans afficher \`npm ERR!\`, tu peux continuer avec \`npm run start:lan\`.
+
+## Si npm install tourne sans fin
+
+Si rien ne bouge apres 5 a 10 minutes :
+
+1. Arrete avec \`Ctrl + C\`.
+2. Relance avec cette commande :
+
+\`\`\`bash
+npm run setup
+\`\`\`
+
+Si ca bloque encore, teste la connexion avec :
+
+\`\`\`bash
+npm ping
+\`\`\`
+
+Si \`npm ping\` ne repond pas, le probleme vient de la connexion a npm, pas du projet.
 
 Si Expo indique une incompatibilite de versions, lance :
 
@@ -581,18 +698,41 @@ Si Expo indique une incompatibilite de versions, lance :
 npx expo install --fix
 \`\`\`
 
+## Creer une vraie app Android APK
+
+Expo Go sert a tester. Pour obtenir un fichier Android installable, il faut creer un APK avec EAS.
+
+1. Connecte-toi a Expo :
+
+\`\`\`bash
+npx eas-cli login
+\`\`\`
+
+2. Lance la construction APK :
+
+\`\`\`bash
+npm run build:android:apk
+\`\`\`
+
+3. Expo te donnera un lien de telechargement quand le build sera termine.
+4. Telecharge le fichier \`.apk\` sur ton telephone Android.
+5. Ouvre le fichier APK pour l installer.
+
+Important : Android peut demander d autoriser l installation depuis une source inconnue.
+Pour publier sur le Play Store, il faut plutot generer un fichier AAB avec un profil production.
+
 ## Lancer le projet
 
 1. Installer les dependances :
 
 \`\`\`bash
-npm install
+npm run setup
 \`\`\`
 
 2. Demarrer Expo :
 
 \`\`\`bash
-npm run start
+npm run start:lan
 \`\`\`
 
 3. Choisir la cible :
@@ -604,6 +744,8 @@ npm run start
 ## Structure
 
 - \`app.json\` : nom, orientation et configuration Expo
+- \`eas.json\` : configuration pour creer un APK Android
+- \`index.js\` : fichier de demarrage Expo
 - \`App.js\` : navigation entre les ecrans
 - \`src/data/screens.js\` : tous les ecrans exportes
 - \`src/components/RenderElement.js\` : rendu des composants
