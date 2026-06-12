@@ -11,8 +11,10 @@ import ThemeEditorModal from './components/ThemeEditorModal';
 import HelpCenter from './components/HelpCenter';
 import LayersPanel from './components/LayersPanel';
 import ScreensPanel from './components/ScreensPanel';
+import AiBuilderModal from './components/AiBuilderModal';
 import { createDefaultElement, createTemplateElements, createTemplateScreens } from './utils/defaultComponents';
 import { generateProjectFiles } from './utils/generateCode';
+import { createLocalAiApp } from './utils/localAiBuilder';
 import { defaultThemeId, getThemeById, themes } from './utils/themes';
 
 const STORAGE_KEY = 'nocode-forge-canvas';
@@ -94,6 +96,7 @@ export default function App() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [themeEditorOpen, setThemeEditorOpen] = useState(false);
+  const [aiBuilderOpen, setAiBuilderOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
@@ -204,6 +207,48 @@ export default function App() {
     applyChange((prev) => [...prev, ...newElements]);
     setSelectedIds(newElements.length ? [newElements[0].id] : []);
     pushToast('Modele ajoute', 'success');
+  };
+
+  const applyGeneratedScreens = (generatedScreens, mode = 'append') => {
+    if (!generatedScreens?.length) return;
+    setProjects((prev) =>
+      prev.map((project) => {
+        if (project.id !== activeProjectId) return project;
+        return {
+          ...project,
+          screens: mode === 'replace' ? generatedScreens : [...(project.screens || []), ...generatedScreens],
+        };
+      })
+    );
+    setActiveScreenId(generatedScreens[0].id);
+    setElements(generatedScreens[0].elements || []);
+    setSelectedIds([]);
+    setHistory([]);
+    setFuture([]);
+  };
+
+  const generateWithLocalAi = (prompt, mode) => {
+    const result = createLocalAiApp(prompt);
+    if (result.templateId) {
+      const templateScreens = createTemplateScreens(result.templateId);
+      if (templateScreens?.length) {
+        applyGeneratedScreens(templateScreens, mode);
+        pushToast(`${result.name} generee`, 'success');
+        setAiBuilderOpen(false);
+        return;
+      }
+      const templateElements = createTemplateElements(result.templateId);
+      if (templateElements.length) {
+        applyChange(() => templateElements);
+        pushToast(`${result.name} generee`, 'success');
+        setAiBuilderOpen(false);
+        return;
+      }
+    }
+
+    applyGeneratedScreens(result.screens, mode);
+    pushToast(`${result.name} generee`, 'success');
+    setAiBuilderOpen(false);
   };
 
   const onSelectElement = (id, additive = false) => {
@@ -767,6 +812,7 @@ export default function App() {
         onSaveProjectAs={saveProjectAs}
         onExportJson={exportJson}
         onImportJson={importJson}
+        onOpenAiBuilder={() => setAiBuilderOpen(true)}
         onOpenThemeEditor={openThemeEditor}
         onDeleteTheme={deleteCurrentCustomTheme}
         onOpenHelp={() => setHelpOpen(true)}
@@ -834,6 +880,7 @@ export default function App() {
 
       <PreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} elements={elements} screens={screens} activeScreenId={activeScreenId} />
       <CodeExporter open={exportOpen} filesByTarget={projectFilesByTarget} onClose={() => setExportOpen(false)} onCopy={copyFile} onDownloadZip={downloadZip} />
+      <AiBuilderModal open={aiBuilderOpen} onClose={() => setAiBuilderOpen(false)} onGenerate={generateWithLocalAi} />
       <ThemeEditorModal
         open={themeEditorOpen}
         draftName={draftThemeName}
