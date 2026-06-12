@@ -152,6 +152,8 @@ const mobileFiles = (screensInput, theme) => {
   const screens = normalizeScreens(screensInput);
   const serializedScreens = JSON.stringify(screens, null, 2);
   const vars = theme?.vars || {};
+  const appName = screens[0]?.name || 'Mon application';
+  const safeAppName = appName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
   return {
     'package.json': `{
@@ -161,17 +163,41 @@ const mobileFiles = (screensInput, theme) => {
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
+    "start:tunnel": "expo start --tunnel",
+    "doctor": "expo-doctor",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"
   },
   "dependencies": {
-    "expo": "~51.0.0",
-    "expo-status-bar": "~1.12.1",
-    "react-dom": "18.2.0",
-    "react": "18.2.0",
-    "react-native": "0.74.5",
-    "react-native-web": "~0.19.10"
+    "expo": "~56.0.0",
+    "expo-status-bar": "~56.0.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.85.0",
+    "react-native-web": "~0.21.0"
+  },
+  "devDependencies": {
+    "expo-doctor": "^1.17.11"
+  }
+}
+`,
+    'app.json': `{
+  "expo": {
+    "name": "${safeAppName}",
+    "slug": "nocode-forge-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "${vars['--ncf-app-bg'] || '#e2e8f0'}"
+    },
+    "android": {
+      "package": "com.nocodeforge.mobile"
+    },
+    "ios": {
+      "supportsTablet": true
+    }
   }
 }
 `,
@@ -185,39 +211,73 @@ import { RenderElement } from './src/components/RenderElement';
 export default function App() {
   const [screenId, setScreenId] = useState(screens[0]?.id);
   const currentScreen = useMemo(() => screens.find((screen) => screen.id === screenId) || screens[0], [screenId]);
+  const currentIndex = Math.max(0, screens.findIndex((screen) => screen.id === currentScreen?.id));
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.appBg }]}>
       <StatusBar style="dark" />
-      <View style={styles.phoneShell}>
+      <View style={styles.header}>
         <View style={styles.handle} />
-        <Text style={[styles.appTitle, { color: theme.text }]}>Mon application</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
-          {screens.map((screen) => {
-            const active = screen.id === currentScreen?.id;
-            return (
-              <Pressable key={screen.id} onPress={() => setScreenId(screen.id)} style={[styles.tab, { backgroundColor: active ? theme.text : theme.surface }]}>
-                <Text style={{ color: active ? '#fff' : theme.text, fontWeight: '800' }}>{screen.name}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.kicker}>NoCode Forge</Text>
+            <Text style={[styles.appTitle, { color: theme.text }]}>{currentScreen?.name || '${appName}'}</Text>
+          </View>
+          <View style={[styles.badge, { backgroundColor: theme.accent }]}>
+            <Text style={styles.badgeText}>{currentIndex + 1}/{screens.length}</Text>
+          </View>
+        </View>
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {(currentScreen?.elements || []).map((item) => <RenderElement key={item.id} item={item} onNavigate={setScreenId} />)}
       </ScrollView>
+      <View style={[styles.bottomBar, { backgroundColor: theme.surface }]}>
+        {screens.slice(0, 5).map((screen, index) => {
+          const active = screen.id === currentScreen?.id;
+          return (
+            <Pressable key={screen.id} onPress={() => setScreenId(screen.id)} style={styles.bottomTab}>
+              <View style={[styles.dot, { backgroundColor: active ? theme.accent : theme.surfaceSoft }]} />
+              <Text numberOfLines={1} style={[styles.bottomTabText, { color: active ? theme.accentStrong : theme.muted }]}>
+                {screen.name}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  phoneShell: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 10 },
+  header: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 12 },
   handle: { alignSelf: 'center', width: 48, height: 5, borderRadius: 999, backgroundColor: '#94a3b8', marginBottom: 12 },
-  appTitle: { fontSize: 22, fontWeight: '900', marginBottom: 12 },
-  tabs: { gap: 8, paddingBottom: 2 },
-  tab: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
-  content: { padding: 16, gap: 12, paddingBottom: 40 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  kicker: { color: theme.muted, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  appTitle: { fontSize: 28, fontWeight: '900', marginTop: 2 },
+  badge: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
+  badgeText: { color: '#fff', fontWeight: '900' },
+  content: { padding: 16, gap: 12, paddingBottom: 116 },
+  bottomBar: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    bottom: 14,
+    minHeight: 72,
+    borderRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 10,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  bottomTab: { flex: 1, alignItems: 'center', gap: 5, paddingHorizontal: 4 },
+  dot: { width: 22, height: 5, borderRadius: 999 },
+  bottomTabText: { maxWidth: 72, fontSize: 11, fontWeight: '900' },
 });
 `,
     'src/components/RenderElement.js': `import React from 'react';
@@ -239,6 +299,7 @@ export function RenderElement({ item, onNavigate }) {
   if (item.type === 'image') return <Image source={{ uri: content }} style={[itemStyle, styles.image]} resizeMode="cover" />;
   if (['input', 'email', 'phone', 'textarea'].includes(item.type)) return <TextInput editable={false} placeholder={content} style={[styles.input, itemStyle, textStyle]} />;
   if (['button', 'appFab'].includes(item.type)) return <Pressable {...boxProps} style={[styles.button, itemStyle]}><Text style={[textStyle, styles.buttonText]}>{content}</Text></Pressable>;
+  if (item.type === 'appSearch') return <View style={[styles.search, itemStyle]}><Text style={styles.searchIcon}>Search</Text><Text style={styles.searchText}>{content || 'Rechercher'}</Text></View>;
 
   const [title, ...rest] = content.split('\\n');
 
@@ -250,6 +311,19 @@ export function RenderElement({ item, onNavigate }) {
   if (item.type === 'appBottomNav') {
     const items = linesOf(content);
     return <View style={[styles.bottomNav, itemStyle]}>{items.map((label, index) => <View key={label} style={[styles.navItem, index === 0 && { backgroundColor: theme.accent }]}><Text style={[styles.navText, index === 0 && { color: '#fff' }]}>{label}</Text></View>)}</View>;
+  }
+
+  if (item.type === 'stats') {
+    const values = linesOf(content);
+    const pairs = [];
+    for (let i = 0; i < values.length; i += 2) {
+      pairs.push({ value: values[i], label: values[i + 1] || '' });
+    }
+    return <View style={[cardStyle, styles.statsGrid]}>{pairs.map((pair) => <View key={pair.value + pair.label} style={styles.statBox}><Text style={[textStyle, styles.statValue]}>{pair.value}</Text><Text style={styles.smallMuted}>{pair.label}</Text></View>)}</View>;
+  }
+
+  if (['features', 'team', 'faq', 'list'].includes(item.type)) {
+    return <View style={cardStyle}>{linesOf(content).map((line, index) => <View key={line + index} style={styles.bulletRow}><View style={[styles.bullet, { backgroundColor: theme.accent }]} /><Text style={[textStyle, styles.bulletText]}>{line}</Text></View>)}</View>;
   }
 
   if (item.type === 'productCard') {
@@ -298,6 +372,9 @@ const styles = StyleSheet.create({
   smallMuted: { marginTop: 4, color: theme.muted, fontSize: 12 },
   image: { minHeight: 180, borderRadius: 24 },
   input: { borderWidth: 1, borderColor: '#cbd5e1' },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: 'rgba(148,163,184,0.35)' },
+  searchIcon: { color: theme.accentStrong, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  searchText: { color: theme.muted, fontWeight: '800' },
   button: { alignItems: 'center', justifyContent: 'center' },
   buttonText: { fontWeight: '900', textAlign: 'center' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -320,6 +397,12 @@ const styles = StyleSheet.create({
   metric: { marginTop: 6, fontWeight: '900', fontSize: 34 },
   goodTrend: { marginTop: 6, color: '#059669', fontWeight: '900' },
   listItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  statBox: { flexGrow: 1, flexBasis: '30%', borderRadius: 18, backgroundColor: theme.surfaceSoft, padding: 12 },
+  statValue: { fontWeight: '900', fontSize: 24 },
+  bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 7 },
+  bullet: { width: 8, height: 8, borderRadius: 999, marginTop: 7 },
+  bulletText: { flex: 1, lineHeight: 22, fontWeight: '700' },
 });
 `,
     'src/utils/styleParsers.js': `const parseSpacing = (value) => {
@@ -409,6 +492,95 @@ export const getTextStyle = (item, theme) => {
 
 Ce dossier contient une application mobile Expo generee par NoCode Forge.
 
+## Recuperer l app sur smartphone
+
+Important : le fichier ZIP n est pas une app installable directement.
+Il contient le projet mobile. Pour le voir sur telephone, on utilise Expo Go.
+
+1. Telecharge le ZIP depuis NoCode Forge.
+2. Dezippe le dossier sur ton ordinateur.
+3. Ouvre un terminal dans ce dossier.
+4. Installe les dependances :
+
+\`\`\`bash
+npm install
+\`\`\`
+
+5. Lance Expo :
+
+\`\`\`bash
+npm run start
+\`\`\`
+
+6. Installe l application Expo Go sur ton smartphone.
+7. Scanne le QR code affiche dans le terminal ou dans la page Expo.
+
+Ton ordinateur et ton smartphone doivent etre connectes au meme Wi-Fi.
+
+## Si le QR code est illisible ou de travers
+
+Ce n est pas grave : c est souvent le terminal qui affiche mal le QR code.
+
+Essaie plutot :
+
+\`\`\`bash
+npm run start:tunnel
+\`\`\`
+
+Puis scanne le nouveau QR code.
+Tu peux aussi ouvrir l adresse affichee par Expo dans le navigateur de ton ordinateur : la page Expo affiche souvent un QR plus propre.
+
+## Si l URL ne marche pas
+
+Essaie dans cet ordre :
+
+1. Verifie que le telephone et l ordinateur sont sur le meme Wi-Fi.
+2. Coupe le VPN si tu en as un.
+3. Relance avec :
+
+\`\`\`bash
+npm run start:tunnel
+\`\`\`
+
+Le mode tunnel passe par internet et evite beaucoup de problemes de box/Wi-Fi.
+
+## Si Expo Go affiche "project is incompatible"
+
+Le plus souvent, Expo Go sur le telephone n a pas la bonne version.
+
+1. Mets Expo Go a jour depuis le Play Store ou l App Store.
+2. Ferme completement Expo Go.
+3. Dans le terminal, relance :
+
+\`\`\`bash
+npm run start:tunnel
+\`\`\`
+
+4. Scanne le nouveau QR code.
+
+Si ca bloque encore, lance :
+
+\`\`\`bash
+npx expo install --fix
+\`\`\`
+
+Puis relance :
+
+\`\`\`bash
+npm run start:tunnel
+\`\`\`
+
+## Si npm affiche des warnings
+
+Les lignes \`npm warn deprecated\` sont des avertissements, pas forcement des erreurs.
+Si \`npm install\` finit sans afficher \`npm ERR!\`, tu peux continuer avec \`npm run start\`.
+
+Si Expo indique une incompatibilite de versions, lance :
+
+\`\`\`bash
+npx expo install --fix
+\`\`\`
+
 ## Lancer le projet
 
 1. Installer les dependances :
@@ -431,6 +603,7 @@ npm run start
 
 ## Structure
 
+- \`app.json\` : nom, orientation et configuration Expo
 - \`App.js\` : navigation entre les ecrans
 - \`src/data/screens.js\` : tous les ecrans exportes
 - \`src/components/RenderElement.js\` : rendu des composants
@@ -440,6 +613,7 @@ npm run start
 ## Notes
 
 Les boutons et cartes qui ont une destination dans NoCode Forge changent d'ecran dans cette app Expo.
+La barre du bas permet aussi de passer rapidement d'un ecran a l'autre.
 `,
   };
 };

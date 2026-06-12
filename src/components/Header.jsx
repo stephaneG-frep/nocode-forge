@@ -7,6 +7,7 @@ export default function Header({
   onExportJson,
   onImportJson,
   onOpenAiBuilder,
+  onOpenAiModify,
   onOpenThemeEditor,
   onDeleteTheme,
   onOpenHelp,
@@ -40,6 +41,7 @@ export default function Header({
           <button onClick={onExportJson} className="rounded-xl border border-[color:var(--ncf-surface-soft)] px-3 py-2 text-sm font-medium text-[color:var(--ncf-text)] transition hover:bg-[color:var(--ncf-surface-soft)]">Export JSON</button>
           <button onClick={onImportJson} className="rounded-xl border border-[color:var(--ncf-surface-soft)] px-3 py-2 text-sm font-medium text-[color:var(--ncf-text)] transition hover:bg-[color:var(--ncf-surface-soft)]">Import JSON</button>
           <button onClick={onOpenAiBuilder} className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-700">Creer avec IA</button>
+          <button onClick={onOpenAiModify} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50">Modifier avec IA</button>
           <select
             value={themeId}
             onChange={(e) => onChangeTheme(e.target.value)}

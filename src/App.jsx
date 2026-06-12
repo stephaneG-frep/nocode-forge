@@ -12,9 +12,10 @@ import HelpCenter from './components/HelpCenter';
 import LayersPanel from './components/LayersPanel';
 import ScreensPanel from './components/ScreensPanel';
 import AiBuilderModal from './components/AiBuilderModal';
+import AiModifyModal from './components/AiModifyModal';
 import { createDefaultElement, createTemplateElements, createTemplateScreens } from './utils/defaultComponents';
 import { generateProjectFiles } from './utils/generateCode';
-import { createLocalAiApp } from './utils/localAiBuilder';
+import { createLocalAiApp, modifyElementsWithLocalAi } from './utils/localAiBuilder';
 import { defaultThemeId, getThemeById, themes } from './utils/themes';
 
 const STORAGE_KEY = 'nocode-forge-canvas';
@@ -97,6 +98,7 @@ export default function App() {
   const [exportOpen, setExportOpen] = useState(false);
   const [themeEditorOpen, setThemeEditorOpen] = useState(false);
   const [aiBuilderOpen, setAiBuilderOpen] = useState(false);
+  const [aiModifyOpen, setAiModifyOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
@@ -227,8 +229,36 @@ export default function App() {
     setFuture([]);
   };
 
-  const generateWithLocalAi = (prompt, mode) => {
+  const prepareLocalAiPlan = (prompt) => {
     const result = createLocalAiApp(prompt);
+    let plannedScreens = result.screens || [];
+
+    if (result.templateId) {
+      const templateScreens = createTemplateScreens(result.templateId);
+      if (templateScreens?.length) {
+        plannedScreens = templateScreens;
+      } else {
+        const templateElements = createTemplateElements(result.templateId);
+        plannedScreens = [{ id: 'screen-preview', name: result.name, elements: templateElements }];
+      }
+    }
+
+    return {
+      name: result.name,
+      summary: result.summary,
+      screens: plannedScreens.map((screen) => ({
+        name: screen.name,
+        count: screen.elements?.length || 0,
+      })),
+    };
+  };
+
+  const generateWithLocalAi = (prompt, mode, styleId) => {
+    const result = createLocalAiApp(prompt);
+    if (styleId && allThemes.some((theme) => theme.id === styleId)) {
+      setThemeId(styleId);
+    }
+
     if (result.templateId) {
       const templateScreens = createTemplateScreens(result.templateId);
       if (templateScreens?.length) {
@@ -249,6 +279,17 @@ export default function App() {
     applyGeneratedScreens(result.screens, mode);
     pushToast(`${result.name} generee`, 'success');
     setAiBuilderOpen(false);
+  };
+
+  const modifyCurrentScreenWithLocalAi = (prompt) => {
+    const result = modifyElementsWithLocalAi(prompt, elements);
+    applyChange(() => result.elements);
+    if (result.themeId && allThemes.some((theme) => theme.id === result.themeId)) {
+      setThemeId(result.themeId);
+    }
+    setSelectedIds(result.elements.slice(elements.length).map((el) => el.id));
+    pushToast(result.summary || 'Ecran modifie avec IA', 'success');
+    setAiModifyOpen(false);
   };
 
   const onSelectElement = (id, additive = false) => {
@@ -813,6 +854,7 @@ export default function App() {
         onExportJson={exportJson}
         onImportJson={importJson}
         onOpenAiBuilder={() => setAiBuilderOpen(true)}
+        onOpenAiModify={() => setAiModifyOpen(true)}
         onOpenThemeEditor={openThemeEditor}
         onDeleteTheme={deleteCurrentCustomTheme}
         onOpenHelp={() => setHelpOpen(true)}
@@ -880,7 +922,18 @@ export default function App() {
 
       <PreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} elements={elements} screens={screens} activeScreenId={activeScreenId} />
       <CodeExporter open={exportOpen} filesByTarget={projectFilesByTarget} onClose={() => setExportOpen(false)} onCopy={copyFile} onDownloadZip={downloadZip} />
-      <AiBuilderModal open={aiBuilderOpen} onClose={() => setAiBuilderOpen(false)} onGenerate={generateWithLocalAi} />
+      <AiBuilderModal
+        open={aiBuilderOpen}
+        onClose={() => setAiBuilderOpen(false)}
+        onGenerate={generateWithLocalAi}
+        onPrepare={prepareLocalAiPlan}
+      />
+      <AiModifyModal
+        open={aiModifyOpen}
+        onClose={() => setAiModifyOpen(false)}
+        onModify={modifyCurrentScreenWithLocalAi}
+        screenName={activeScreen?.name || 'Ecran'}
+      />
       <ThemeEditorModal
         open={themeEditorOpen}
         draftName={draftThemeName}

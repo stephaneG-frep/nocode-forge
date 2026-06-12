@@ -51,6 +51,32 @@ export const themes = [
       '--ncf-accent-strong': '#1b4f9c',
     },
   },
+  {
+    id: 'saas-light',
+    name: 'SaaS clair',
+    vars: {
+      '--ncf-app-bg': '#eef4ff',
+      '--ncf-surface': '#ffffff',
+      '--ncf-surface-soft': '#f3f7ff',
+      '--ncf-text': '#172033',
+      '--ncf-muted': '#60708a',
+      '--ncf-accent': '#2563eb',
+      '--ncf-accent-strong': '#1d4ed8',
+    },
+  },
+  {
+    id: 'mobile-premium',
+    name: 'Mobile premium',
+    vars: {
+      '--ncf-app-bg': '#dbeafe',
+      '--ncf-surface': '#ffffff',
+      '--ncf-surface-soft': '#eaf2ff',
+      '--ncf-text': '#0b1220',
+      '--ncf-muted': '#516179',
+      '--ncf-accent': '#0ea5e9',
+      '--ncf-accent-strong': '#075985',
+    },
+  },
 ];
 
 export const defaultThemeId = themes[0].id;

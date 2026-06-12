@@ -65,11 +65,34 @@ export default function CodeExporter({
         </div>
 
         <div className="grid h-[calc(85vh-72px)] grid-cols-1 md:grid-cols-[280px_1fr]">
-          <aside className="border-r border-slate-200 bg-slate-50 p-2">
+          <aside className="overflow-y-auto border-r border-slate-200 bg-slate-50 p-2">
             <div className="mb-3 rounded-2xl bg-white p-3 text-sm text-slate-600 shadow-sm">
               <p className="font-semibold text-slate-900">{target === 'web' ? 'Site web React' : 'Application mobile Expo'}</p>
               <p className="mt-1">{target === 'web' ? 'A lancer avec npm install puis npm run dev.' : 'Export Expo multi-ecrans avec navigation. A lancer avec npm install puis npm run start.'}</p>
             </div>
+            {target === 'mobile' ? (
+              <div className="mb-3 rounded-2xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-950">
+                <p className="font-black">Sur ton smartphone</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-4">
+                  <li>Telecharge le ZIP mobile.</li>
+                  <li>Dezippe-le sur l ordinateur.</li>
+                  <li>Dans ce dossier, lance <span className="font-mono font-semibold">npm install</span>.</li>
+                  <li>Puis lance <span className="font-mono font-semibold">npm run start:tunnel</span>.</li>
+                  <li>Installe Expo Go sur le telephone.</li>
+                  <li>Scanne le QR code affiche par Expo.</li>
+                </ol>
+                <p className="mt-2 text-xs text-blue-800">
+                  Si Expo dit "incompatible", mets Expo Go a jour puis relance le tunnel.
+                </p>
+              </div>
+            ) : (
+              <div className="mb-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-950">
+                <p className="font-black">Voir sur telephone</p>
+                <p className="mt-1">
+                  Pour un site web, le plus simple est de l heberger, ou de l ouvrir depuis le meme Wi-Fi avec l adresse locale de ton ordinateur.
+                </p>
+              </div>
+            )}
             {fileNames.map((file) => (
               <button
                 key={file}
